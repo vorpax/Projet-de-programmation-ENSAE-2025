@@ -78,6 +78,8 @@ class Grid():
         """
         Returns True is the cell (i, j) is black and False otherwise
         """
+        return self.get_coordinate_color(self, i, j) == "w"
+
         # TODO
 
     def cost(self, pair):
@@ -98,6 +100,18 @@ class Grid():
 
 
     def all_pairs(self):
+        
+        ListOfPairs = []
+        for i in range(self.n -1):
+            for j in range(self.m -1):
+                if not self.is_forbidden(i,j) and not self.is_forbidden(i+1,j):
+                    pass
+                if not self.is_forbidden(i,j) and not self.is_forbidden(i+1,j):
+                    pass
+
+
+        
+        
         """
         Returns a list of all pairs of cells that can be taken together. 
 
@@ -105,6 +119,9 @@ class Grid():
         """
         # TODO
     
+
+    def get_coordinate_color(self, i, j):
+        return self.colors_list[self.color[i][j]] 
 
 
 
@@ -153,4 +170,51 @@ class Grid():
             grid = Grid(n, m, color, value)
         return grid
 
+class Cell():
+    """
+    A class representing a cell in the grid. 
 
+    Attributes: 
+    -----------
+    i: int
+        The line number of the cell
+    j: int
+        The column number of the cell
+    color: int
+        The color of the cell
+    value: int
+        The value of the cell
+    """
+    def __init__(self, i, j, color, value):
+        """
+        Initializes the cell.
+
+        Parameters: 
+        -----------
+        i: int
+            The line number of the cell
+        j: int
+            The column number of the cell
+        color: int
+            The color of the cell
+        value: int
+            The value of the cell
+        """
+        self.i = i
+        self.j = j
+        self.color = color
+        self.value = value
+
+    def __str__(self): 
+        """
+        Prints the cell as text.
+        """
+        return f"Cell ({self.i}, {self.j}) has color {self.color} and value {self.value}"
+
+    def __repr__(self): 
+        """
+        Returns a representation of the cell with its coordinates.
+        """
+        return f"<grid.Cell: i={self.i}, j={self.j}>"
+
+    
