@@ -2,32 +2,36 @@
 This is the grid module. It contains the Grid class and its associated methods.
 """
 
-class Grid():
-    """
-    A class representing the grid. 
+# Formation du binome: ensaeProg25Binome (en objet)
+# Rendu : ensaeProg25Rendu (en objet)
+# mail: ziyad.benomar@ensae.fr
 
-    Attributes: 
+
+class Grid:
+    """
+    A class representing the grid.
+
+    Attributes:
     -----------
     n: int
         Number of lines in the grid
     m: int
         Number of columns in the grid
     color: list[list[int]]
-        The color of each grid cell: value[i][j] is the value in the cell (i, j), i.e., in the i-th line and j-th column. 
+        The color of each grid cell: value[i][j] is the value in the cell (i, j), i.e., in the i-th line and j-th column.
         Note: lines are numbered 0..n-1 and columns are numbered 0..m-1.
     value: list[list[int]]
-        The value of each grid cell: value[i][j] is the value in the cell (i, j), i.e., in the i-th line and j-th column. 
+        The value of each grid cell: value[i][j] is the value in the cell (i, j), i.e., in the i-th line and j-th column.
         Note: lines are numbered 0..n-1 and columns are numbered 0..m-1.
     colors_list: list[char]
         The mapping between the value of self.color[i][j] and the corresponding color
     """
-    
 
     def __init__(self, n, m, color=[], value=[]):
         """
         Initializes the grid.
 
-        Parameters: 
+        Parameters:
         -----------
         n: int
             Number of lines in the grid
@@ -37,38 +41,38 @@ class Grid():
             The grid cells colors. Default is empty (then the grid is created with each cell having color 0, i.e., white).
         value: list[list[int]]
             The grid cells values. Default is empty (then the grid is created with each cell having value 1).
-        
+
         The object created has an attribute colors_list: list[char], which is the mapping between the value of self.color[i][j] and the corresponding color
         """
         self.n = n
         self.m = m
         if not color:
-            color = [[0 for j in range(m)] for i in range(n)]            
+            color = [[0 for j in range(m)] for i in range(n)]
         self.color = color
         if not value:
-            value = [[1 for j in range(m)] for i in range(n)]            
+            value = [[1 for j in range(m)] for i in range(n)]
         self.value = value
-        self.colors_list = ['w', 'r', 'b', 'g', 'k']
+        self.colors_list = ["w", "r", "b", "g", "k"]
 
-    def __str__(self): 
+    def __str__(self):
         """
         Prints the grid as text.
         """
         output = f"The grid is {self.n} x {self.m}. It has the following colors:\n"
-        for i in range(self.n): 
+        for i in range(self.n):
             output += f"{[self.colors_list[self.color[i][j]] for j in range(self.m)]}\n"
         output += f"and the following values:\n"
-        for i in range(self.n): 
+        for i in range(self.n):
             output += f"{self.value[i]}\n"
         return output
 
-    def __repr__(self): 
+    def __repr__(self):
         """
         Returns a representation of the grid with number of rows and columns.
         """
         return f"<grid.Grid: n={self.n}, m={self.m}>"
 
-    def plot(self): 
+    def plot(self):
         """
         Plots a visual representation of the grid.
         """
@@ -78,69 +82,84 @@ class Grid():
         """
         Returns True is the cell (i, j) is black and False otherwise
         """
-        return self.get_coordinate_color(self, i, j) == "w"
+        return self.get_coordinate_color(i, j) == "w"
 
         # TODO
 
     def cost(self, pair):
         """
         Returns the cost of a pair
- 
-        Parameters: 
+
+        Parameters:
         -----------
         pair: tuple[tuple[int]]
             A pair in the format ((i1, j1), (i2, j2))
 
-        Output: 
+        Output:
         -----------
         cost: int
             the cost of the pair defined as the absolute value of the difference between their values
         """
+        
+        Valeur1 = self.get_coordinate_value(pair[0][0],pair[0][1])
+        Valeur2 = self.get_coordinate_value(pair[1][0],pair[1][1])
+        return abs(Valeur1 - Valeur2)
+        
         # TODO
-
+        
+        
 
     def all_pairs(self):
-        
+
         ListOfPairs = []
-        for i in range(self.n -1):
-            for j in range(self.m -1):
-                if not self.is_forbidden(i,j) and not self.is_forbidden(i+1,j):
-                    pass
-                if not self.is_forbidden(i,j) and not self.is_forbidden(i+1,j):
-                    pass
+        for i in range(self.n):
+            for j in range(self.m):
+                if not self.is_forbidden(i, j) and i + 1 != self.n:
+                    print(f"eval i+1={i+1},j={j}")
+                    if not self.is_forbidden(i + 1, j):
+                        ListOfPairs.append([[i, j], [i + 1, j]])
+                if not self.is_forbidden(i, j) and j + 1 != self.m:
+                    print(f"eval i={i},j+1={j+1}")
+                    if not self.is_forbidden(i, j + 1):
+                        ListOfPairs.append([[i, j], [i, j + 1]])
 
+        return ListOfPairs
 
-        
-        
         """
         Returns a list of all pairs of cells that can be taken together. 
 
         Outputs a list of tuples of tuples [(c1, c2), (c1', c2'), ...] where each cell c1 etc. is itself a tuple (i, j)
         """
         # TODO
-    
 
     def get_coordinate_color(self, i, j):
-        return self.colors_list[self.color[i][j]] 
-
-
+        Ligne = self.color[i]
+        ColorIndex = Ligne[j]
+        print(ColorIndex)
+        return self.colors_list[ColorIndex]
+    
+    def get_coordinate_value(self, i, j):
+        Ligne = self.value[i]
+        ValueIndex = Ligne[j]
+        print(ValueIndex)
+        return ValueIndex
 
     @classmethod
-    def grid_from_file(cls, file_name, read_values=False): 
+    def grid_from_file(cls, file_name, read_values=False):
         """
         Creates a grid object from class Grid, initialized with the information from the file file_name.
-        
-        Parameters: 
+
+        Parameters:
         -----------
         file_name: str
-            Name of the file to load. The file must be of the format: 
-            - first line contains "n m" 
+            Name of the file to load. The file must be of the format:
+            - first line contains "n m"
             - next n lines contain m integers that represent the colors of the corresponding cell
             - next n lines [optional] contain m integers that represent the values of the corresponding cell
         read_values: bool
             Indicates whether to read values after having read the colors. Requires that the file has 2n+1 lines
 
-        Output: 
+        Output:
         -------
         grid: Grid
             The grid
@@ -150,7 +169,7 @@ class Grid():
             color = [[] for i_line in range(n)]
             for i_line in range(n):
                 line_color = list(map(int, file.readline().split()))
-                if len(line_color) != m: 
+                if len(line_color) != m:
                     raise Exception("Format incorrect")
                 for j in range(m):
                     if line_color[j] not in range(5):
@@ -161,7 +180,7 @@ class Grid():
                 value = [[] for i_line in range(n)]
                 for i_line in range(n):
                     line_value = list(map(int, file.readline().split()))
-                    if len(line_value) != m: 
+                    if len(line_value) != m:
                         raise Exception("Format incorrect")
                     value[i_line] = line_value
             else:
@@ -170,11 +189,12 @@ class Grid():
             grid = Grid(n, m, color, value)
         return grid
 
-class Cell():
-    """
-    A class representing a cell in the grid. 
 
-    Attributes: 
+class Cell:
+    """
+    A class representing a cell in the grid.
+
+    Attributes:
     -----------
     i: int
         The line number of the cell
@@ -185,11 +205,12 @@ class Cell():
     value: int
         The value of the cell
     """
+
     def __init__(self, i, j, color, value):
         """
         Initializes the cell.
 
-        Parameters: 
+        Parameters:
         -----------
         i: int
             The line number of the cell
@@ -205,16 +226,16 @@ class Cell():
         self.color = color
         self.value = value
 
-    def __str__(self): 
+    def __str__(self):
         """
         Prints the cell as text.
         """
-        return f"Cell ({self.i}, {self.j}) has color {self.color} and value {self.value}"
+        return (
+            f"Cell ({self.i}, {self.j}) has color {self.color} and value {self.value}"
+        )
 
-    def __repr__(self): 
+    def __repr__(self):
         """
         Returns a representation of the cell with its coordinates.
         """
         return f"<grid.Cell: i={self.i}, j={self.j}>"
-
-    

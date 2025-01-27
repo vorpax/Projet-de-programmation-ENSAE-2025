@@ -15,14 +15,13 @@ grid = Grid.grid_from_file(file_name, read_values=True)
 print(grid)
 
 
+AllPairs = grid.all_pairs()
+AllValues = [grid.cost(pairs) for pairs in AllPairs]
+print(AllValues)
+
+
 pass
-
-
-print(grid.get_coordinate_color(0,0))
-
 
 solver = SolverEmpty(grid)
 solver.run()
 print("The final score of SolverEmpty is:", solver.score())
-
-
