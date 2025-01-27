@@ -1,9 +1,8 @@
-
 class Solver:
     """
-    A solver class. 
+    A solver class.
 
-    Attributes: 
+    Attributes:
     -----------
     grid: Grid
         The grid
@@ -15,7 +14,7 @@ class Solver:
         """
         Initializes the solver.
 
-        Parameters: 
+        Parameters:
         -----------
         grid: Grid
             The grid
@@ -29,10 +28,7 @@ class Solver:
         """
         return "Method not implemented yet"
 
+
 class SolverEmpty(Solver):
     def run(self):
         pass
-
-
-
-

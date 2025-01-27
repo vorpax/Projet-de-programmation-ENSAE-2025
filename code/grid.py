@@ -6,6 +6,20 @@ This is the grid module. It contains the Grid class and its associated methods.
 # Rendu : ensaeProg25Rendu (en objet)
 # mail: ziyad.benomar@ensae.fr
 
+BlancCombinaisonOk = [1, 1, 1, 1, 0]
+RougeCombinaisonOk = [1, 1, 1, 0, 0]
+BleuCombinaisonOk = [1, 1, 1, 0, 0]
+VertCombinaisonOk = [1, 0, 0, 1, 0]
+NoirCombinaisonOk = [0, 0, 0, 0, 0]
+
+MatriceCouleurOk = [
+    BlancCombinaisonOk,
+    RougeCombinaisonOk,
+    BleuCombinaisonOk,
+    VertCombinaisonOk,
+    NoirCombinaisonOk,
+]
+
 
 class Grid:
     """
@@ -82,9 +96,14 @@ class Grid:
         """
         Returns True is the cell (i, j) is black and False otherwise
         """
-        return self.get_coordinate_color(i, j) == "w"
+        return self.get_coordinate_color(i, j) == "k"
 
         # TODO
+
+    def is_pair_forbidden(self, pair):
+        Couleur1 = self.color[pair[0][0]][pair[0][1]]
+        Couleur2 = self.color[pair[1][0]][pair[1][1]]
+        return MatriceCouleurOk[Couleur1][Couleur2]
 
     def cost(self, pair):
         """
@@ -100,14 +119,12 @@ class Grid:
         cost: int
             the cost of the pair defined as the absolute value of the difference between their values
         """
-        
-        Valeur1 = self.get_coordinate_value(pair[0][0],pair[0][1])
-        Valeur2 = self.get_coordinate_value(pair[1][0],pair[1][1])
+
+        Valeur1 = self.get_coordinate_value(pair[0][0], pair[0][1])
+        Valeur2 = self.get_coordinate_value(pair[1][0], pair[1][1])
         return abs(Valeur1 - Valeur2)
-        
+
         # TODO
-        
-        
 
     def all_pairs(self):
 
@@ -117,6 +134,7 @@ class Grid:
                 if not self.is_forbidden(i, j) and i + 1 != self.n:
                     print(f"eval i+1={i+1},j={j}")
                     if not self.is_forbidden(i + 1, j):
+                        self.get_coordinate_color(i, j)
                         ListOfPairs.append([[i, j], [i + 1, j]])
                 if not self.is_forbidden(i, j) and j + 1 != self.m:
                     print(f"eval i={i},j+1={j+1}")
@@ -137,7 +155,7 @@ class Grid:
         ColorIndex = Ligne[j]
         print(ColorIndex)
         return self.colors_list[ColorIndex]
-    
+
     def get_coordinate_value(self, i, j):
         Ligne = self.value[i]
         ValueIndex = Ligne[j]
