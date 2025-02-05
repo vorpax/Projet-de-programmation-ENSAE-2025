@@ -32,3 +32,8 @@ class Solver:
 class SolverEmpty(Solver):
     def run(self):
         pass
+
+
+class SolverGreedy(Solver):
+    def run(self):
+        pass

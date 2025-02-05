@@ -19,6 +19,8 @@ AllPairs = grid.all_pairs()
 AllValues = [grid.cost(pairs) for pairs in AllPairs]
 print(AllValues)
 
+grid.plot()
+
 
 pass
 
