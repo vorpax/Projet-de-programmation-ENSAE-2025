@@ -76,7 +76,7 @@ class Grid:
         output = f"The grid is {self.n} x {self.m}. It has the following colors:\n"
         for i in range(self.n):
             output += f"{[self.colors_list[self.color[i][j]] for j in range(self.m)]}\n"
-        output += f"and the following values:\n"
+        output += "and the following values:\n"
         for i in range(self.n):
             output += f"{self.value[i]}\n"
         return output
@@ -133,8 +133,6 @@ class Grid:
 
         return self.get_coordinate_color(i, j) == "k"
 
-        # TODO
-
     def is_pair_forbidden(self, pair):
         """
         Returns True if the pair is forbidden and False otherwise
@@ -144,7 +142,7 @@ class Grid:
         Couleur2 = self.color[pair[1][0]][pair[1][1]]
         return not MatriceCouleurOk[Couleur1][Couleur2]
 
-    def cost(self, pair):
+    def cost(self, pair: tuple[tuple[int]]) -> int:
         """
         Returns the cost of a pair
 
@@ -163,9 +161,12 @@ class Grid:
         Valeur2 = self.get_coordinate_value(pair[1][0], pair[1][1])
         return abs(Valeur1 - Valeur2)
 
-        # TODO
-
     def all_pairs(self):
+        """
+        Returns a list of all pairs of cells that can be taken together.
+
+        Outputs a list of tuples of tuples [(c1, c2), (c1', c2'), ...] where each cell c1 etc. is itself a tuple (i, j)
+        """
 
         ListOfPairs = []
         for i in range(self.n):
@@ -175,30 +176,27 @@ class Grid:
                     if not self.is_pair_forbidden(Paire):
                         ListOfPairs.append(Paire)
                 if j + 1 != self.m:
-                    Paire = [[i, j], [i, j + 1]]
+                    Paire = ((i, j), (i, j + 1))
                     if not self.is_pair_forbidden(Paire):
                         ListOfPairs.append(Paire)
 
         return ListOfPairs
 
-        """
-        Returns a list of all pairs of cells that can be taken together. 
-
-        Outputs a list of tuples of tuples [(c1, c2), (c1', c2'), ...] where each cell c1 etc. is itself a tuple (i, j)
-        """
-        # TODO
-
     def get_coordinate_color(self, i, j):
+        """
+        Retourne la couleur de la cellule (i, j) (sous forme de string et pas de chiffre)
+        """
+
         Ligne = self.color[i]
         ColorIndex = Ligne[j]
         print(ColorIndex)
         return self.colors_list[ColorIndex]
 
     def get_coordinate_value(self, i, j):
-        Ligne = self.value[i]
-        ValueIndex = Ligne[j]
-        print(ValueIndex)
-        return ValueIndex
+        ligne = self.value[i]
+        value_index = ligne[j]
+        print(value_index)
+        return value_index
 
     @classmethod
     def grid_from_file(cls, file_name, read_values=False):
@@ -220,7 +218,7 @@ class Grid:
         grid: Grid
             The grid
         """
-        with open(file_name, "r") as file:
+        with open(file_name, "r", encoding="utf-8") as file:
             n, m = map(int, file.readline().split())
             color = [[] for i_line in range(n)]
             for i_line in range(n):

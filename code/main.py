@@ -22,8 +22,6 @@ print(AllValues)
 grid.plot()
 
 
-pass
-
 solver = SolverEmpty(grid)
 solver.run()
 print("The final score of SolverEmpty is:", solver.score())
