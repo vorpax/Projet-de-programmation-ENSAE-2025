@@ -6,6 +6,7 @@ This is the grid module. It contains the Grid class and its associated methods.
 # Rendu : ensaeProg25Rendu (en objet)
 # mail: ziyad.benomar@ensae.fr
 
+
 BlancCombinaisonOk = [1, 1, 1, 1, 0]
 RougeCombinaisonOk = [1, 1, 1, 0, 0]
 BleuCombinaisonOk = [1, 1, 1, 0, 0]
@@ -88,22 +89,60 @@ class Grid:
 
     def plot(self):
         """
-        Plots a visual representation of the grid.
+        Plots a visual representation of the grid using matplotlib.
         """
-        # TODO
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as colors
+
+        fig, ax = plt.subplots(figsize=(8, 6))
+        cmap = colors.ListedColormap(self.colors_list)
+        bounds = list(range(len(self.colors_list) + 1))
+        norm = colors.BoundaryNorm(bounds, cmap.N)
+
+        data = self.color
+        ax.imshow(data, cmap=cmap, norm=norm)
+
+        # Add value labels
+        for i in range(self.n):
+            for j in range(self.m):
+                ax.text(
+                    j,
+                    i,
+                    str(self.value[i][j]),
+                    ha="center",
+                    va="center",
+                    color="black",
+                    fontweight="bold",
+                )
+
+        # Customize grid appearance
+        ax.grid(True, which="major", color="black", linewidth=2)
+        # ax.set_xticks(np.arange(-0.5, self.m, 1))
+        # ax.set_yticks(np.arange(-0.5, self.n, 1))
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+
+        plt.title("Grid Visualization")
+        plt.tight_layout()
+        plt.show()
 
     def is_forbidden(self, i, j):
         """
         Returns True is the cell (i, j) is black and False otherwise
         """
+
         return self.get_coordinate_color(i, j) == "k"
 
         # TODO
 
     def is_pair_forbidden(self, pair):
+        """
+        Returns True if the pair is forbidden and False otherwise
+        A bit more complex and relevant than simply checking if one of the cells is black
+        """
         Couleur1 = self.color[pair[0][0]][pair[0][1]]
         Couleur2 = self.color[pair[1][0]][pair[1][1]]
-        return MatriceCouleurOk[Couleur1][Couleur2]
+        return not MatriceCouleurOk[Couleur1][Couleur2]
 
     def cost(self, pair):
         """
@@ -131,15 +170,14 @@ class Grid:
         ListOfPairs = []
         for i in range(self.n):
             for j in range(self.m):
-                if not self.is_forbidden(i, j) and i + 1 != self.n:
-                    print(f"eval i+1={i+1},j={j}")
-                    if not self.is_forbidden(i + 1, j):
-                        self.get_coordinate_color(i, j)
-                        ListOfPairs.append([[i, j], [i + 1, j]])
-                if not self.is_forbidden(i, j) and j + 1 != self.m:
-                    print(f"eval i={i},j+1={j+1}")
-                    if not self.is_forbidden(i, j + 1):
-                        ListOfPairs.append([[i, j], [i, j + 1]])
+                if i + 1 != self.n:
+                    Paire = [[i, j], [i + 1, j]]
+                    if not self.is_pair_forbidden(Paire):
+                        ListOfPairs.append(Paire)
+                if j + 1 != self.m:
+                    Paire = [[i, j], [i, j + 1]]
+                    if not self.is_pair_forbidden(Paire):
+                        ListOfPairs.append(Paire)
 
         return ListOfPairs
 
