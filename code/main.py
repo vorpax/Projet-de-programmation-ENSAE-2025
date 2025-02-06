@@ -1,17 +1,21 @@
-from grid import Grid
-from solver import SolverGreedy
+"""
+a simple main file to test the grid and the solver
+"""
+
+from .grid import Grid
+from .solver import SolverGreedy
 
 grid = Grid(2, 3)
 print(grid)
 
-data_path = "./input/"
+DATA_PATH = "./input/"
 
-file_name = data_path + "grid01.in"
-grid = Grid.grid_from_file(file_name)
+FILE_NAME = DATA_PATH + "grid01.in"
+grid = Grid.grid_from_file(FILE_NAME)
 print(grid)
 
-file_name = data_path + "grid01.in"
-grid = Grid.grid_from_file(file_name, read_values=True)
+FILE_NAME = DATA_PATH + "grid01.in"
+grid = Grid.grid_from_file(FILE_NAME, read_values=True)
 print(grid)
 
 

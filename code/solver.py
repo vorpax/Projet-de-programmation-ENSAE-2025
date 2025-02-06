@@ -1,3 +1,7 @@
+"""
+A module for the solver class and implementations of it.
+"""
+
 from grid import Grid
 
 
@@ -23,8 +27,8 @@ class Solver:
             The grid
         """
         self.grid = grid
-        self.pairs = list()
-        self.cells = list()
+        self.pairs = []
+        self.cells = []
 
     def score(self):
         """
@@ -39,12 +43,21 @@ class SolverEmpty(Solver):
     """
 
     def run(self):
-        """ """
-        pass
+        """
+        Returns an empty list of pairs (Empty solver).
+        """
 
 
 class SolverGreedy(Solver):
+    """
+    A greedy solver that chooses the cheapest pair at each step
+    """
+
     def run(self):
+        """
+        Runs the greedy solver. Returns the list of each pair chosen.
+        """
+
         chosen_pairs = self.pairs
         chosen_cells = self.cells
         all_pairs_sorted = self.grid.all_pairs().copy()
@@ -57,19 +70,6 @@ class SolverGreedy(Solver):
             for pair in all_pairs_sorted:
                 if pair[0] not in chosen_cells and pair[1] not in chosen_cells:
                     filtered_list.append(pair)
-
-            # print("The damn list looks like this:")
-            # print(filtered_list)
-
-            # filtered_list_cost = [self.grid.cost(pairs) for pairs in filtered_list]
-            # print("\n The cost of each pair is :")
-            # print(filtered_list_cost)
-
-            # filtered_list = [
-            #     pair
-            #     for pair in lowest_score_pair
-            #     if pair[0] not in filtered_list and pair[1] not in filtered_list
-            # ]
 
             if len(filtered_list) != 0:
                 cheapest_pair = filtered_list.pop(0)

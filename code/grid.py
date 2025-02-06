@@ -2,6 +2,11 @@
 This is the grid module. It contains the Grid class and its associated methods.
 """
 
+import os
+import matplotlib.pyplot as plt
+from matplotlib import colors
+
+
 # Formation du binome: ensaeProg25Binome (en objet)
 # Rendu : ensaeProg25Rendu (en objet)
 # mail: ziyad.benomar@ensae.fr
@@ -33,16 +38,18 @@ class Grid:
     m: int
         Number of columns in the grid
     color: list[list[int]]
-        The color of each grid cell: value[i][j] is the value in the cell (i, j), i.e., in the i-th line and j-th column.
+        The color of each grid cell: value[i][j] is the value in the cell (i, j)
+        , i.e., in the i-th line and j-th column.
         Note: lines are numbered 0..n-1 and columns are numbered 0..m-1.
     value: list[list[int]]
-        The value of each grid cell: value[i][j] is the value in the cell (i, j), i.e., in the i-th line and j-th column.
+        The value of each grid cell: value[i][j] is the value in the cell (i, j)
+        , i.e., in the i-th line and j-th column.
         Note: lines are numbered 0..n-1 and columns are numbered 0..m-1.
     colors_list: list[char]
         The mapping between the value of self.color[i][j] and the corresponding color
     """
 
-    def __init__(self, n, m, color=[], value=[]):
+    def __init__(self, n, m, color=None, value=None):
         """
         Initializes the grid.
 
@@ -53,11 +60,14 @@ class Grid:
         m: int
             Number of columns in the grid
         color: list[list[int]]
-            The grid cells colors. Default is empty (then the grid is created with each cell having color 0, i.e., white).
+            The grid cells colors. Default is empty
+            (then the grid is created with each cell having color 0, i.e., white).
         value: list[list[int]]
-            The grid cells values. Default is empty (then the grid is created with each cell having value 1).
+            The grid cells values. Default is empty
+            (then the grid is created with each cell having value 1).
 
-        The object created has an attribute colors_list: list[char], which is the mapping between the value of self.color[i][j] and the corresponding color
+        The object created has an attribute colors_list: list[char],
+        which is the mapping between the value of self.color[i][j] and the corresponding color
         """
         self.n = n
         self.m = m
@@ -91,10 +101,9 @@ class Grid:
         """
         Plots a visual representation of the grid using matplotlib.
         """
-        import matplotlib.pyplot as plt
-        import matplotlib.colors as colors
 
         fig, ax = plt.subplots(figsize=(8, 6))
+        print(fig)
         cmap = colors.ListedColormap(self.colors_list)
         bounds = list(range(len(self.colors_list) + 1))
         norm = colors.BoundaryNorm(bounds, cmap.N)
@@ -156,9 +165,9 @@ class Grid:
         ):
             raise IndexError("Second cell coordinates out of bounds")
 
-        Couleur1 = self.color[pair[0][0]][pair[0][1]]
-        Couleur2 = self.color[pair[1][0]][pair[1][1]]
-        return not MatriceCouleurOk[Couleur1][Couleur2]
+        couleur1 = self.color[pair[0][0]][pair[0][1]]
+        couleur2 = self.color[pair[1][0]][pair[1][1]]
+        return not MatriceCouleurOk[couleur1][couleur2]
 
     def cost(self, pair: tuple[tuple[int]]) -> int:
         """
@@ -172,67 +181,73 @@ class Grid:
         Output:
         -----------
         cost: int
-            the cost of the pair defined as the absolute value of the difference between their values
+            the cost of the pair defined as the absolute value
+            of the difference between their values
         """
 
         if self.is_pair_forbidden(pair):
             return 0  # or some other value indicating the pair is forbidden
 
-        Valeur1 = self.get_coordinate_value(pair[0][0], pair[0][1])
-        Valeur2 = self.get_coordinate_value(pair[1][0], pair[1][1])
-        return abs(Valeur1 - Valeur2)
+        valeur1 = self.get_coordinate_value(pair[0][0], pair[0][1])
+        valeur2 = self.get_coordinate_value(pair[1][0], pair[1][1])
+        return abs(valeur1 - valeur2)
 
     def all_pairs(self):
         """
         Returns a list of all pairs of cells that can be taken together.
 
-        Outputs a list of tuples of tuples [(c1, c2), (c1', c2'), ...] where each cell c1 etc. is itself a tuple (i, j)
+        Outputs a list of tuples of tuples [(c1, c2), (c1', c2'), ...]
+        where each cell c1 etc. is itself a tuple (i, j)
         """
 
-        ListOfPairs = []
+        liste_of_pairs = []
         for i in range(self.n):
             for j in range(self.m):
                 if i + 1 != self.n:
-                    Paire = [[i, j], [i + 1, j]]
-                    if not self.is_pair_forbidden(Paire):
-                        ListOfPairs.append(Paire)
+                    paire = [[i, j], [i + 1, j]]
+                    if not self.is_pair_forbidden(paire):
+                        liste_of_pairs.append(paire)
                 if j + 1 != self.m:
-                    Paire = [[i, j], [i, j + 1]]
-                    if not self.is_pair_forbidden(Paire):
-                        ListOfPairs.append(Paire)
+                    paire = [[i, j], [i, j + 1]]
+                    if not self.is_pair_forbidden(paire):
+                        liste_of_pairs.append(paire)
 
-        return ListOfPairs
+        return liste_of_pairs
 
     def get_coordinate_color(self, i, j):
         """
         Retourne la couleur de la cellule (i, j) (sous forme de string et pas de chiffre)
         """
-        Ligne = self.color[i]
-        ColorIndex = Ligne[j]
-        return self.colors_list[ColorIndex]
-        return self.colors_list[ColorIndex]
+        ligne = self.color[i]
+        color_index = ligne[j]
+        return self.colors_list[color_index]
 
     def get_coordinate_value(self, i, j):
+        """
+        Retourne la valeur de la cellule (i, j)
+        """
         ligne = self.value[i]
         value_index = ligne[j]
         return value_index
 
     @classmethod
     def grid_from_file(cls, file_name, read_values=False):
-        import os
-
         """
-        Creates a grid object from class Grid, initialized with the information from the file file_name.
+        Creates a grid object from class Grid,
+        initialized with the information from the file file_name.
 
         Parameters:
         -----------
         file_name: str
             Name of the file to load. The file must be of the format:
             - first line contains "n m"
-            - next n lines contain m integers that represent the colors of the corresponding cell
-            - next n lines [optional] contain m integers that represent the values of the corresponding cell
+            - next n lines contain m integers
+            that represent the colors of the corresponding cell
+            - next n lines [optional] contain m integers
+            that represent the values of the corresponding cell
         read_values: bool
-            Indicates whether to read values after having read the colors. Requires that the file has 2n+1 lines
+            Indicates whether to read values after having read the colors.
+            Requires that the file has 2n+1 lines
 
         Output:
         -------
@@ -248,10 +263,10 @@ class Grid:
             for i_line in range(n):
                 line_color = list(map(int, file.readline().split()))
                 if len(line_color) != m:
-                    raise Exception("Format incorrect")
+                    raise ValueError("Format incorrect")
                 for j in range(m):
                     if line_color[j] not in range(5):
-                        raise Exception("Invalid color")
+                        raise ValueError("Invalid color")
                 color[i_line] = line_color
 
             if read_values:
@@ -259,7 +274,7 @@ class Grid:
                 for i_line in range(n):
                     line_value = list(map(int, file.readline().split()))
                     if len(line_value) != m:
-                        raise Exception("Format incorrect")
+                        raise ValueError("Format incorrect")
                     value[i_line] = line_value
             else:
                 value = []
