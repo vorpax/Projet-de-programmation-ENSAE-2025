@@ -26,5 +26,9 @@ solver = SolverGreedy(grid)
 
 GreedyPairs = solver.run()
 print(GreedyPairs)
+GreedyPairsCost = [grid.cost(pairs) for pairs in GreedyPairs]
+
+
+print(GreedyPairsCost)
 print("e")
 print("The final score of SolverEmpty is:", solver.score())
