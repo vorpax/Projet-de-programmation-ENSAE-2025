@@ -45,14 +45,20 @@ class SolverEmpty(Solver):
 class SolverGreedy(Solver):
     def run(self):
         pairs = []
-        lowest_score_pair = self.grid.all_pairs().copy().sort(key=self.grid.cost)
+        lowest_score_pair = self.grid.all_pairs().copy()
+        lowest_score_pair.sort(key=self.grid.cost)
 
         while len(lowest_score_pair) > 0:
-            filtered_list = [
-                pair
-                for pair in lowest_score_pair
-                if pair[0] not in lowest_score_pair and pair[1] not in lowest_score_pair
-            ]
+
+            filtered_list = []
+            for pair in lowest_score_pair:
+                if pair[0] not in filtered_list and pair[1] not in filtered_list:
+                    filtered_list.append(pair)
+            # filtered_list = [
+            #     pair
+            #     for pair in lowest_score_pair
+            #     if pair[0] not in filtered_list and pair[1] not in filtered_list
+            # ]
             lowest_score_pair = filtered_list
             pairs.append(filtered_list.pop())
         return pairs

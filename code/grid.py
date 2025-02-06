@@ -131,6 +131,9 @@ class Grid:
         Returns True is the cell (i, j) is black and False otherwise
         """
 
+        if i < 0 or i >= self.n or j < 0 or j >= self.m:
+            raise IndexError("Cell coordinates out of bounds")
+
         return self.get_coordinate_color(i, j) == "k"
 
     def is_pair_forbidden(self, pair):
@@ -138,6 +141,21 @@ class Grid:
         Returns True if the pair is forbidden and False otherwise
         A bit more complex and relevant than simply checking if one of the cells is black
         """
+        if (
+            pair[0][0] < 0
+            or pair[0][0] >= self.n
+            or pair[0][1] < 0
+            or pair[0][1] >= self.m
+        ):
+            raise IndexError("First cell coordinates out of bounds")
+        if (
+            pair[1][0] < 0
+            or pair[1][0] >= self.n
+            or pair[1][1] < 0
+            or pair[1][1] >= self.m
+        ):
+            raise IndexError("Second cell coordinates out of bounds")
+
         Couleur1 = self.color[pair[0][0]][pair[0][1]]
         Couleur2 = self.color[pair[1][0]][pair[1][1]]
         return not MatriceCouleurOk[Couleur1][Couleur2]
@@ -156,6 +174,9 @@ class Grid:
         cost: int
             the cost of the pair defined as the absolute value of the difference between their values
         """
+
+        if self.is_pair_forbidden(pair):
+            return 0  # or some other value indicating the pair is forbidden
 
         Valeur1 = self.get_coordinate_value(pair[0][0], pair[0][1])
         Valeur2 = self.get_coordinate_value(pair[1][0], pair[1][1])
@@ -176,7 +197,7 @@ class Grid:
                     if not self.is_pair_forbidden(Paire):
                         ListOfPairs.append(Paire)
                 if j + 1 != self.m:
-                    Paire = ((i, j), (i, j + 1))
+                    Paire = [[i, j], [i, j + 1]]
                     if not self.is_pair_forbidden(Paire):
                         ListOfPairs.append(Paire)
 
@@ -186,20 +207,20 @@ class Grid:
         """
         Retourne la couleur de la cellule (i, j) (sous forme de string et pas de chiffre)
         """
-
         Ligne = self.color[i]
         ColorIndex = Ligne[j]
-        print(ColorIndex)
+        return self.colors_list[ColorIndex]
         return self.colors_list[ColorIndex]
 
     def get_coordinate_value(self, i, j):
         ligne = self.value[i]
         value_index = ligne[j]
-        print(value_index)
         return value_index
 
     @classmethod
     def grid_from_file(cls, file_name, read_values=False):
+        import os
+
         """
         Creates a grid object from class Grid, initialized with the information from the file file_name.
 
@@ -218,6 +239,9 @@ class Grid:
         grid: Grid
             The grid
         """
+        if not os.path.exists(file_name):
+            raise FileNotFoundError(f"The file {file_name} does not exist.")
+
         with open(file_name, "r", encoding="utf-8") as file:
             n, m = map(int, file.readline().split())
             color = [[] for i_line in range(n)]

@@ -1,5 +1,5 @@
 from grid import Grid
-from solver import *
+from solver import SolverGreedy
 
 grid = Grid(2, 3)
 print(grid)
@@ -19,9 +19,12 @@ AllPairs = grid.all_pairs()
 AllValues = [grid.cost(pairs) for pairs in AllPairs]
 print(AllValues)
 
-grid.plot()
+# grid.plot()
 
 
-solver = SolverEmpty(grid)
-solver.run()
+solver = SolverGreedy(grid)
+
+GreedyPairs = solver.run()
+print(GreedyPairs)
+print("e")
 print("The final score of SolverEmpty is:", solver.score())
