@@ -2,8 +2,8 @@
 a simple main file to test the grid and the solver
 """
 
-from .grid import Grid
-from .solver import SolverGreedy
+from grid import Grid
+from solver import SolverGreedy
 
 grid = Grid(2, 3)
 print(grid)

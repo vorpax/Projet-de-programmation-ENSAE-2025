@@ -34,7 +34,7 @@ class Solver:
         """
         Computes the of the list of pairs in self.pairs
         """
-        return "Method not implemented yet"
+        return sum(self.grid.cost(pair) for pair in self.pairs)
 
 
 class SolverEmpty(Solver):
