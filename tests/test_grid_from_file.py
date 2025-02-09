@@ -1,10 +1,9 @@
 # This will work if ran from the root folder (the folder in which there is the subfolder code/)
 import sys
-
-sys.path.append("code/")
-
 import unittest
 from grid import Grid
+
+sys.path.append("code/")
 
 
 class Test_GridLoading(unittest.TestCase):
