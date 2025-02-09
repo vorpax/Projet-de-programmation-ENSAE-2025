@@ -14,7 +14,11 @@ class Solver:
     grid: Grid
         The grid
     pairs: list[tuple[tuple[int]]]
-        A list of pairs, each being a tuple ((i1, j1), (i2, j2))
+        A list of chosen pairs, each being a tuple ((i1, j1), (i2, j2)). Those are chosen after running the solver.
+    cells: list[tuple[int]] :
+        A list of chosen cells, each being a tuple (i, j). Those are added after running the solver.
+    all_cells: list[tuple[int]]
+        A list of every cells of the grid, each being a tuple (i, j).
     """
 
     def __init__(self, grid: Grid):
@@ -29,12 +33,22 @@ class Solver:
         self.grid = grid
         self.pairs = []
         self.cells = []
+        self.all_cells = [
+            (i, j) for i in range(self.grid.n) for j in range(self.grid.m)
+        ]
 
     def score(self):
         """
         Computes the of the list of pairs in self.pairs
         """
-        return sum(self.grid.cost(pair) for pair in self.pairs)
+
+        remaining_cells_cost = sum(
+            self.grid.value(cell[0], cell[1])
+            for cell in self.all_cells
+            if cell not in self.cells
+        )
+        chosen_pairs_cost = sum(self.grid.cost(pair) for pair in self.pairs)
+        return remaining_cells_cost + chosen_pairs_cost
 
 
 class SolverEmpty(Solver):
@@ -82,5 +96,11 @@ class SolverGreedy(Solver):
                 )
 
             all_pairs_sorted = filtered_list
+
+        self.pairs = chosen_pairs  # !!!! Va falloir modifier d'autres trucs puisque la méthode solver.run() n'est plus stateless
+
+        for pair in self.pairs:
+            self.cells.append(pair[0])
+            self.cells.append(pair[1])
 
         return chosen_pairs
