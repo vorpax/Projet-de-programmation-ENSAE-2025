@@ -3,7 +3,7 @@ a simple main file to test the grid and the solver
 """
 
 from grid import Grid
-import matplotlib.pyplot as plt
+
 
 
 grid = Grid(2, 3)

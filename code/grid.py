@@ -99,7 +99,7 @@ class Grid:
         """
         Plots a visual representation of the grid using matplotlib.
         """
-        fig, ax = plt.subplots()
+        ax = plt.subplots()[1]
 
         rgb_baby = [
             (255, 255, 255),
