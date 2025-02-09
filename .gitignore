@@ -1,4 +1,5 @@
-code/__pycache__/*
 solver-bkp.py
 grid-bkp.py
 main-bkp.py
+__pycache__
+code/plot.ipynb

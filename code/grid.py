@@ -4,8 +4,6 @@ This is the grid module. It contains the Grid class and its associated methods.
 
 import os
 import matplotlib.pyplot as plt
-from matplotlib import colors
-
 
 # Formation du binome: ensaeProg25Binome (en objet)
 # Rendu : ensaeProg25Rendu (en objet)
@@ -101,38 +99,32 @@ class Grid:
         """
         Plots a visual representation of the grid using matplotlib.
         """
+        ax = plt.subplots()[1]
 
-        fig, ax = plt.subplots(figsize=(8, 6))
-        print(fig)
-        cmap = colors.ListedColormap(self.colors_list)
-        bounds = list(range(len(self.colors_list) + 1))
-        norm = colors.BoundaryNorm(bounds, cmap.N)
+        rgb_baby = [
+            (255, 255, 255),
+            (208, 0, 0),
+            (68, 114, 196),
+            (112, 173, 71),
+            (0, 0, 0),
+        ]
 
-        data = self.color
-        ax.imshow(data, cmap=cmap, norm=norm)
+        # r rgb(208, 0, 0)
+        # g rgb(112, 173, 71)
+        # b rgb(68, 114, 196)
 
-        # Add value labels
+        color_map = []
         for i in range(self.n):
+            color_map.append([])
             for j in range(self.m):
-                ax.text(
-                    j,
-                    i,
-                    str(self.value[i][j]),
-                    ha="center",
-                    va="center",
-                    color="black",
-                    fontweight="bold",
-                )
+                color_map[i].append(rgb_baby[self.color[i][j]])
+                plt.text(j, i, self.value[i][j], ha="center", va="center")
+        ax.tick_params(length=0, labelsize="large", pad=10)
 
-        # Customize grid appearance
-        ax.grid(True, which="major", color="black", linewidth=2)
-        # ax.set_xticks(np.arange(-0.5, self.m, 1))
-        # ax.set_yticks(np.arange(-0.5, self.n, 1))
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
-
-        plt.title("Grid Visualization")
-        plt.tight_layout()
+        ax.matshow(color_map)
+        plt.gca().set_xticks([x - 0.5 for x in range(1, self.m)], minor="true")
+        plt.gca().set_yticks([x - 0.5 for x in range(1, self.m)], minor="true")
+        ax.grid(visible=True, which="minor")  # Draw grid between cells
         plt.show()
 
     def is_forbidden(self, i, j):
