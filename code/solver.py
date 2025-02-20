@@ -2,7 +2,7 @@
 A module for the solver class and implementations of it.
 """
 
-from grid import Grid
+from code.grid import Grid, Cell
 
 
 class Solver:
@@ -104,3 +104,68 @@ class SolverGreedy(Solver):
             self.cells.append(pair[1])
 
         return chosen_pairs
+
+
+class SolverBasicMatching(Solver):
+    """
+    A solver thats based on graph theory and Ford-Fulkerson algorithm
+    """
+
+    def __init__(self, grid):
+        """
+        Initializes the solver
+        """
+        super().__init__(grid)
+        self.dict_adjacency = {}
+        self.adjacency_graph_init()
+
+    def adjacency_graph_init(self):
+        """
+        Initializes the adjacency graph of the grid
+        """
+
+        self.dict_adjacency["puit"] = [
+            cell for cell in self.grid.cells_list if (cell.i + cell.j) % 2
+        ]
+
+        self.dict_adjacency["source"] = [
+            Cell for Cell in self.grid.cells_list if not (Cell.i + Cell.j) % 2
+        ]
+
+        def add_children(cell: Cell):
+            """
+            add the children of a cell to the adjacency dictionnary
+            """
+            if self.dict_adjacency.get(f"cell_{cell.i}_{cell.j}") is None:
+                self.dict_adjacency[f"cell_{cell.i}_{cell.j}"] = []
+
+            adjecente = [
+                [cell.i + 1, cell.j],
+                [cell.i - 1, cell.j],
+                [cell.i, cell.j + 1],
+            ]
+
+            for cell_adjecente in adjecente:
+                if cell_adjecente[0] in range(self.grid.n):
+                    if cell_adjecente[1] in range(self.grid.m):
+                        if not self.grid.is_pair_forbidden(
+                            [[cell.i, cell.j], cell_adjecente]
+                        ):
+                            self.dict_adjacency[f"cell_{cell.i}_{cell.j}"].append(
+                                self.grid.cells[cell_adjecente[0]][cell_adjecente[1]]
+                            )
+                        if (
+                            self.dict_adjacency.get(
+                                f"cell_{cell_adjecente[0]}_{cell_adjecente[1]}"
+                            )
+                            is None
+                        ):
+                            add_children(
+                                self.grid.cells[cell_adjecente[0]][cell_adjecente[1]]
+                            )
+
+            # if cell_adjecente[0] in range(self.grid.n):
+            #         if cell_adjecente[1] in range(self.grid.m):
+
+        for child_cell in self.dict_adjacency["source"]:
+            add_children(child_cell)
