@@ -76,6 +76,8 @@ class Grid:
             value = [[1 for j in range(m)] for i in range(n)]
         self.value = value
         self.colors_list = ["w", "r", "b", "g", "k"]
+        self.cells_list = []
+        self.cells = []
 
     def __str__(self):
         """
@@ -101,7 +103,7 @@ class Grid:
         """
         ax = plt.subplots()[1]
 
-        rgb_baby = [
+        rgb_tab = [
             (255, 255, 255),
             (208, 0, 0),
             (68, 114, 196),
@@ -117,7 +119,7 @@ class Grid:
         for i in range(self.n):
             color_map.append([])
             for j in range(self.m):
-                color_map[i].append(rgb_baby[self.color[i][j]])
+                color_map[i].append(rgb_tab[self.color[i][j]])
                 plt.text(j, i, self.value[i][j], ha="center", va="center")
         ax.tick_params(length=0, labelsize="large", pad=10)
 
@@ -222,6 +224,23 @@ class Grid:
         value_index = ligne[j]
         return value_index
 
+    def cell_init(self):
+        """
+        Initialises all the cells of the Grid
+        """
+        for i in range(self.n):
+            self.cells.append([])
+            for j in range(self.m):
+                self.cells[i].append(Cell(i, j, self.color[i][j], self.value[i][j]))
+
+        self.cells_list = [
+            Cell(i, j, self.color[i][j], self.value[i][j])
+            for i in range(self.n)
+            for j in range(self.m)
+        ]
+
+        # Ici, pas de BFS ou de DFS :(
+
     @classmethod
     def grid_from_file(cls, file_name, read_values=False):
         """
@@ -291,7 +310,7 @@ class Cell:
         The value of the cell
     """
 
-    def __init__(self, i, j, color, value):
+    def __init__(self, i: int, j: int, color: int, value: int):
         """
         Initializes the cell.
 
@@ -310,6 +329,7 @@ class Cell:
         self.j = j
         self.color = color
         self.value = value
+        self.ispair = (i + j) % 2
 
     def __str__(self):
         """
