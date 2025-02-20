@@ -77,7 +77,7 @@ class Grid:
         self.value = value
         self.colors_list = ["w", "r", "b", "g", "k"]
         self.cells_list = []
-        self.cells = []
+        self.cells: list[list[Cell]] = []
 
     def __str__(self):
         """
