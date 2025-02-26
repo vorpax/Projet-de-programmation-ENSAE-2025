@@ -2,20 +2,18 @@
 a simple main file to test the grid and the solver
 """
 
-from code.grid import Grid  # , Cell
-from code.solver import SolverBasicMatching
+from grid import Grid  # , Cell
+from solver import TestSolverFulkerson
 
-grid = Grid(2, 3)
-print(grid)
 
 DATA_PATH = "./input/"
 
 # FILE_NAME = DATA_PATH + "grid01.in"
 # grid = Grid.grid_from_file(FILE_NAME)
 
-FILE_NAME = DATA_PATH + "grid02.in"
+FILE_NAME = DATA_PATH + "grid00.in"
 grid = Grid.grid_from_file(FILE_NAME, read_values=True)
-# grid.plot()
+grid.plot()
 grid.cell_init()
 
 print("poulet")
@@ -61,7 +59,9 @@ first_cell = grid.cells_list[0]
 # for child_cell in dict_adjacency["source"]:
 #     add_children(child_cell)
 
-test_solver = SolverBasicMatching(grid)
+test_solver = TestSolverFulkerson(grid)
+euuh = test_solver.run()
+print(euuh)
 
 
 print("break")
