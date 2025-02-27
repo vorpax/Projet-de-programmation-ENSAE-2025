@@ -198,11 +198,11 @@ class Grid:
         for i in range(self.n):
             for j in range(self.m):
                 if i + 1 != self.n:
-                    paire = [[i, j], [i + 1, j]]
+                    paire = [(i, j), (i + 1, j)]
                     if not self.is_pair_forbidden(paire):
                         liste_of_pairs.append(paire)
                 if j + 1 != self.m:
-                    paire = [[i, j], [i, j + 1]]
+                    paire = [(i, j), (i, j + 1)]
                     if not self.is_pair_forbidden(paire):
                         liste_of_pairs.append(paire)
 
