@@ -3,7 +3,7 @@ a simple main file to test the grid and the solver
 """
 
 from grid import Grid  # , Cell
-from solver import TestSolverFulkerson
+from solver import SolverFulkerson
 
 
 DATA_PATH = "./input/"
@@ -11,7 +11,7 @@ DATA_PATH = "./input/"
 # FILE_NAME = DATA_PATH + "grid01.in"
 # grid = Grid.grid_from_file(FILE_NAME)
 
-FILE_NAME = DATA_PATH + "grid00.in"
+FILE_NAME = DATA_PATH + "grid21.in"
 grid = Grid.grid_from_file(FILE_NAME, read_values=True)
 grid.plot()
 grid.cell_init()
@@ -59,7 +59,7 @@ first_cell = grid.cells_list[0]
 # for child_cell in dict_adjacency["source"]:
 #     add_children(child_cell)
 
-test_solver = TestSolverFulkerson(grid)
+test_solver = SolverFulkerson(grid)
 euuh = test_solver.run()
 print(euuh)
 
