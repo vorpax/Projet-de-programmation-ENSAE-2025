@@ -1,8 +1,12 @@
 """
-A module for the solver class and implementations of it.
+A module for the solver class and its implementations.
+
+This module contains the base Solver class and various solver implementations
+including SolverEmpty, SolverGreedy, and SolverFulkerson (which uses the
+Ford-Fulkerson algorithm for maximum bipartite matching).
 """
 
-from grid import Grid, Cell
+from grid import Grid
 
 
 class Solver:
@@ -37,13 +41,21 @@ class Solver:
             (i, j) for i in range(self.grid.n) for j in range(self.grid.m)
         ]
 
-    def score(self):
+    def score(self) -> int:
         """
-        Computes the of the list of pairs in self.pairs
-        """
+        Computes the total score of the current solution.
 
+        The score is calculated as the sum of:
+        - The values of remaining cells (cells that were not paired)
+        - The costs of chosen pairs
+
+        Returns:
+        --------
+        int
+            The total score
+        """
         remaining_cells_cost = sum(
-            self.grid.value(cell[0], cell[1])
+            self.grid.get_coordinate_value(cell[0], cell[1])
             for cell in self.all_cells
             if cell not in self.cells
         )
@@ -53,25 +65,45 @@ class Solver:
 
 class SolverEmpty(Solver):
     """
-    An empty solver for testing purposes
+    An empty solver for testing purposes.
+
+    This solver doesn't select any pairs and returns an empty list.
     """
 
-    def run(self):
+    def run(self) -> list:
         """
-        Returns an empty list of pairs (Empty solver).
+        Runs the empty solver.
+
+        Returns:
+        --------
+        list
+            An empty list of pairs
         """
+        return []
 
 
 class SolverGreedy(Solver):
     """
-    A greedy solver that chooses the cheapest pair at each step
+    A greedy solver that chooses the cheapest pair at each step.
+
+    This implementation sorts all possible pairs by cost and iteratively
+    selects the cheapest available pair, making sure not to reuse any cells.
     """
 
-    def run(self):
+    def run(self) -> list[list[tuple[int, int]]]:
         """
-        Runs the greedy solver. Returns the list of each pair chosen.
-        """
+        Runs the greedy solver.
 
+        The algorithm:
+        1. Sort all valid pairs by cost
+        2. Iteratively select the cheapest pair that doesn't reuse cells
+        3. Update the list of chosen pairs and cells
+
+        Returns:
+        --------
+        list[list[tuple[int, int]]]
+            The list of chosen pairs in the format [[(i1, j1), (i2, j2)], ...]
+        """
         chosen_pairs = self.pairs
         chosen_cells = self.cells
         all_pairs_sorted = self.grid.all_pairs().copy()
@@ -97,8 +129,10 @@ class SolverGreedy(Solver):
 
             all_pairs_sorted = filtered_list
 
-        self.pairs = chosen_pairs  # !!!! Va falloir modifier d'autres trucs puisque la méthode solver.run() n'est plus stateless
+        self.pairs = chosen_pairs
 
+        # Update the list of cells
+        self.cells = []
         for pair in self.pairs:
             self.cells.append(pair[0])
             self.cells.append(pair[1])
@@ -111,20 +145,54 @@ class SolverGreedy(Solver):
 
 class SolverFulkerson(Solver):
     """
-    Working ? I hope
+    A solver implementing the Ford-Fulkerson algorithm for maximum bipartite matching.
+
+    This solver uses a network flow approach to find the maximum matching between cells
+    of the grid. It models the problem as a bipartite graph where:
+    - Even cells (i+j is even) are connected to a source node
+    - Odd cells (i+j is odd) are connected to a sink node
+    - Even cells are connected to adjacent odd cells if the pair is valid
+
+    Attributes:
+    -----------
+    grid: Grid
+        The grid to solve
+    residual_graph: dict
+        Dictionary representing the residual graph for the Ford-Fulkerson algorithm
+    pairs: list
+        The chosen pairs after running the algorithm
+    cells: list
+        The chosen cells after running the algorithm
     """
 
-    def __init__(self, grid):
+    def __init__(self, grid: Grid) -> None:
         """
-        Initializes the solver with a grid and sets up the residual graph
+        Initializes the solver with a grid and sets up the residual graph.
+
+        Parameters:
+        -----------
+        grid: Grid
+            The grid to solve
         """
         super().__init__(grid)
-        self.residual_graph = {}  # Dictionary to represent residual graph
+        self.residual_graph: dict = {}  # Dictionary to represent residual graph
         self.adjacency_graph_init()
 
-    def adjacency_graph_init(self):
+    def adjacency_graph_init(self) -> None:
         """
-        Initialize the residual graph for Ford-Fulkerson algorithm
+        Initializes the residual graph for the Ford-Fulkerson algorithm.
+
+        This method creates a graph representation where:
+        1. A source node is connected to all even-parity cells
+        2. All odd-parity cells are connected to a sink node
+        3. Even cells are connected to adjacent odd cells if the pair is not forbidden
+
+        All edges in the initial graph have capacity 1, representing the possibility
+        of including that connection in the matching.
+
+        Returns:
+        --------
+        None
         """
         # Initialize source and sink nodes
         self.residual_graph["source"] = {}
@@ -164,7 +232,7 @@ class SolverFulkerson(Solver):
                 ):
                     adj_cell_id = f"cell_{adj_i}_{adj_j}"
 
-                    # Check if this pair is not forbidden - fixed format for forbidden pairs check
+                    # Check if this pair is not forbidden
                     pair = [(i, j), (adj_i, adj_j)]
                     if not self.grid.is_pair_forbidden(pair):
                         # Add edge with capacity 1 (since we can match at most once)
@@ -172,10 +240,23 @@ class SolverFulkerson(Solver):
                     else:
                         print(f"forbidden {pair}")  # For debugging purposes
 
-    def find_augmenting_path(self):
+    def find_augmenting_path(self) -> list[str] | None:
         """
-        Find an augmenting path from source to sink in the residual graph using BFS
-        Returns the path as a list of node IDs, or None if no path exists
+        Finds an augmenting path from source to sink in the residual graph using BFS.
+
+        This is a key component of the Ford-Fulkerson algorithm. An augmenting path
+        is a path from source to sink through the residual graph with available capacity
+        on all edges.
+
+        Returns:
+        --------
+        list[str] | None
+            The path as a list of node IDs (strings), or None if no path exists
+
+        Note:
+        -----
+        The implementation uses a simple list as a queue. For better performance,
+        consider using collections.deque instead.
         """
         # Queue for BFS
         queue = ["source"]
@@ -186,7 +267,6 @@ class SolverFulkerson(Solver):
             current = queue.pop(0)
 
             # If we reached the sink, construct and return the path
-            # TODO : Changer l'implémentation pour mettre une queue du module collections (dequeue)
             if current == "sink":
                 path = []
                 while current is not None:
@@ -205,9 +285,20 @@ class SolverFulkerson(Solver):
         # No path found
         return None
 
-    def ford_fulkerson(self):
+    def ford_fulkerson(self) -> int:
         """
-        Implements the Ford-Fulkerson algorithm to find maximum flow/matching
+        Implements the Ford-Fulkerson algorithm to find maximum flow/matching.
+
+        This algorithm:
+        1. Repeatedly finds augmenting paths from source to sink
+        2. Updates the residual graph by decreasing capacity in the forward direction
+           and increasing capacity in the backward direction
+        3. Continues until no more augmenting paths can be found
+
+        Returns:
+        --------
+        int
+            The maximum flow value, which equals the size of the maximum matching
         """
         # Initialize flow to 0
         max_flow = 0
@@ -243,40 +334,57 @@ class SolverFulkerson(Solver):
 
         return max_flow
 
-    def run(self):
+    def run(self) -> list[tuple[tuple[int, int], tuple[int, int]]]:
         """
-        Run the solver and return the matching pairs
+        Runs the solver and returns the matching pairs.
+
+        This method:
+        1. Executes the Ford-Fulkerson algorithm to find the maximum matching
+        2. Extracts the matching by checking for backward edges with positive capacity
+           (which indicate that flow passed through that edge)
+        3. Converts the matching from the graph representation back to grid coordinates
+
+        Returns:
+        --------
+        list[tuple[tuple[int, int], tuple[int, int]]]
+            A list of matched pairs, where each pair is represented as ((i1, j1), (i2, j2))
         """
         # Run Ford-Fulkerson algorithm
         max_flow = self.ford_fulkerson()
         print(f"Maximum flow: {max_flow}")
-        print(self.residual_graph)
 
-        print("break")
-        # Extract matching from residual graph - improved to check backward edges
+        # Extract matching from residual graph - check backward edges more efficiently
         matching_pairs = []
+
+        # Iterate only through even cells (connected to source)
         for i in range(self.grid.n):
             for j in range(self.grid.m):
                 if (i + j) % 2 == 0:  # Only check even cells
                     cell_id = f"cell_{i}_{j}"
-                    if cell_id in self.residual_graph:
-                        for adj_i in range(self.grid.n):
-                            for adj_j in range(self.grid.m):
-                                if (adj_i + adj_j) % 2 == 1:  # Only check odd cells
-                                    adj_cell_id = f"cell_{adj_i}_{adj_j}"
 
-                                    # Check if there's a backward edge with positive capacity
-                                    # This indicates flow was sent through this edge
-                                    if (
-                                        adj_cell_id in self.residual_graph
-                                        and cell_id in self.residual_graph[adj_cell_id]
-                                        and self.residual_graph[adj_cell_id][cell_id]
-                                        > 0
-                                    ):
-                                        matching_pairs.append(((i, j), (adj_i, adj_j)))
-                                        # Add cells to self.cells for scoring
-                                        self.cells.append((i, j))
-                                        self.cells.append((adj_i, adj_j))
+                    # Only check adjacent odd cells (up, down, left, right)
+                    adjacents = [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)]
+
+                    for adj_i, adj_j in adjacents:
+                        # Verify cell is valid, odd, and adjacent
+                        if (
+                            0 <= adj_i < self.grid.n
+                            and 0 <= adj_j < self.grid.m
+                            and (adj_i + adj_j) % 2 == 1
+                        ):
+                            adj_cell_id = f"cell_{adj_i}_{adj_j}"
+
+                            # Check if there's a backward edge with positive capacity
+                            # This indicates flow was sent through this edge
+                            if (
+                                adj_cell_id in self.residual_graph
+                                and cell_id in self.residual_graph[adj_cell_id]
+                                and self.residual_graph[adj_cell_id][cell_id] > 0
+                            ):
+                                matching_pairs.append(((i, j), (adj_i, adj_j)))
+                                # Add cells to self.cells for scoring
+                                self.cells.append((i, j))
+                                self.cells.append((adj_i, adj_j))
 
         self.pairs = matching_pairs
         return matching_pairs

@@ -1,0 +1,2 @@
+matplotlib==3.10.1
+pylint==3.3.4
