@@ -1,67 +1,32 @@
 """
-a simple main file to test the grid and the solver
+Main module for testing the grid and solvers.
+
+This module loads a grid from an input file, initializes cells, and runs
+a solver to find a matching solution. It demonstrates the basic workflow
+of loading a grid and applying a solver algorithm.
 """
 
-from grid import Grid  # , Cell
+from grid import Grid
 from solver import SolverFulkerson
 
 
 DATA_PATH = "./input/"
 
-# FILE_NAME = DATA_PATH + "grid01.in"
-# grid = Grid.grid_from_file(FILE_NAME)
-
+# Load a grid from file with values
 FILE_NAME = DATA_PATH + "grid21.in"
 grid = Grid.grid_from_file(FILE_NAME, read_values=True)
+
+# Display the grid
 grid.plot()
+
+# Initialize the grid cells
 grid.cell_init()
 
-print("poulet")
+print("Processing grid...")
 
+# Create and run the Ford-Fulkerson solver
+solver = SolverFulkerson(grid)
+matching_pairs = solver.run()
+print(f"Found {len(matching_pairs)} matching pairs")
 
-first_cell = grid.cells_list[0]
-
-
-# Adjacency dictionnary which is the ground for modeling the graph
-# dict_adjacency = {}
-# dict_adjacency["source"] = [
-#     Cell for Cell in grid.cells_list if not (Cell.i + Cell.j) % 2
-# ]
-# dict_adjacency["puit"] = [cell for cell in grid.cells_list if (cell.i + cell.j) % 2]
-
-
-# def add_children(cell: Cell):
-#     """
-#     add the children of a cell to the adjacency dictionnary
-#     """
-#     if dict_adjacency.get(f"cell_{cell.i}_{cell.j}") is None:
-#         dict_adjacency[f"cell_{cell.i}_{cell.j}"] = []
-
-#     adjecente = [[cell.i + 1, cell.j], [cell.i - 1, cell.j], [cell.i, cell.j + 1]]
-
-#     for cell_adjecente in adjecente:
-#         if cell_adjecente[0] in range(grid.n):
-#             if cell_adjecente[1] in range(grid.m):
-#                 if not grid.is_pair_forbidden([[cell.i, cell.j], cell_adjecente]):
-#                     dict_adjacency[f"cell_{cell.i}_{cell.j}"].append(
-#                         grid.cells[cell_adjecente[0]][cell_adjecente[1]]
-#                     )
-#                 if (
-#                     dict_adjacency.get(f"cell_{cell_adjecente[0]}_{cell_adjecente[1]}")
-#                     is None
-#                 ):
-#                     add_children(grid.cells[cell_adjecente[0]][cell_adjecente[1]])
-
-#     # if cell_adjecente[0] in range(grid.n):
-#     #         if cell_adjecente[1] in range(grid.m):
-
-
-# for child_cell in dict_adjacency["source"]:
-#     add_children(child_cell)
-
-test_solver = SolverFulkerson(grid)
-euuh = test_solver.run()
-print(euuh)
-
-
-print("break")
+print("Finished")
