@@ -1,5 +1,7 @@
 # Projet de Programmation ENSAE 2025
 
+Houard Alexandre (vorpax) et Octave Hedarchet (maupassaant)
+
 ## Implémentation
 
 ### Structure
