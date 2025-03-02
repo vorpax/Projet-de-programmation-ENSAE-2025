@@ -131,7 +131,6 @@ class SolverGreedy(Solver):
 
         self.pairs = chosen_pairs
 
-        # Update the list of cells
         self.cells = []
         for pair in self.pairs:
             self.cells.append(pair[0])
@@ -140,7 +139,7 @@ class SolverGreedy(Solver):
         return chosen_pairs
 
 
-# adapter avec liste et, m*i + j ? si je veux enregistrer capacité ????
+# adapter avec liste et, m*i + j ? si je veux enregistrer capacité ???? (enft non pas besoin)
 
 
 class SolverFulkerson(Solver):
@@ -175,7 +174,7 @@ class SolverFulkerson(Solver):
             The grid to solve
         """
         super().__init__(grid)
-        self.residual_graph: dict = {}  # Dictionary to represent residual graph
+        self.residual_graph: dict = {}  # Dict 4 residual graph
         self.adjacency_graph_init()
 
     def adjacency_graph_init(self) -> None:
@@ -194,7 +193,7 @@ class SolverFulkerson(Solver):
         --------
         None
         """
-        # Initialize source and sink nodes
+        # On initialise source et sink (cellules "fictives", font pas partie de la grille)
         self.residual_graph["source"] = {}
         self.residual_graph["sink"] = {}
 
@@ -204,41 +203,32 @@ class SolverFulkerson(Solver):
         for i in range(self.grid.n):
             for j in range(self.grid.m):
                 cell_id = f"cell_{i}_{j}"
-                # Initialize each cell's entry in the residual graph
+                # Faut bien commencer par initialiser le graphe résiduel pr sink source
                 self.residual_graph[cell_id] = {}
 
                 # Sort cells into even and odd based on i+j parity
                 if (i + j) % 2 == 0:
                     even_cells.append((i, j))
-                    # Connect source to even cells with capacity 1
+                    # Capa de 1 car : une paire ne peut matcher qu'avec 1 seule autre paire
                     self.residual_graph["source"][cell_id] = 1
                 else:
                     odd_cells.append((i, j))
-                    # Connect odd cells to sink with capacity 1
+                    # Cf ci-dessus
                     self.residual_graph[cell_id]["sink"] = 1
 
-        # Connect even cells to adjacent odd cells
+        # initialise arêtes cellules paires -> impaires selon contraintes
         for i, j in even_cells:
             cell_id = f"cell_{i}_{j}"
-            # Check all potential adjacent cells (up, down, left, right)
+            # Haut bas droite gauche
             adjacents = [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)]
 
-            for adj_i, adj_j in adjacents:
-                # Check if valid cell and if it's an odd cell (different parity)
-                if (
-                    0 <= adj_i < self.grid.n
-                    and 0 <= adj_j < self.grid.m
-                    and (adj_i + adj_j) % 2 != 0
-                ):
+            for adj_i, adj_j in adjacents:  # On unpack
+                if 0 <= adj_i < self.grid.n and 0 <= adj_j < self.grid.m:
                     adj_cell_id = f"cell_{adj_i}_{adj_j}"
 
-                    # Check if this pair is not forbidden
                     pair = [(i, j), (adj_i, adj_j)]
                     if not self.grid.is_pair_forbidden(pair):
-                        # Add edge with capacity 1 (since we can match at most once)
                         self.residual_graph[cell_id][adj_cell_id] = 1
-                    else:
-                        print(f"forbidden {pair}")  # For debugging purposes
 
     def find_augmenting_path(self) -> list[str] | None:
         """
@@ -258,31 +248,30 @@ class SolverFulkerson(Solver):
         The implementation uses a simple list as a queue. For better performance,
         consider using collections.deque instead.
         """
-        # Queue for BFS
+        # Une queue
         queue = ["source"]
-        # Keep track of visited nodes and their predecessors
+        # On veut garder la trace des noeuds visités, faudrait pas se perdre
         visited = {"source": None}
 
         while queue:
             current = queue.pop(0)
 
-            # If we reached the sink, construct and return the path
+            # Si on a atteint le sink, on est bon
             if current == "sink":
                 path = []
                 while current is not None:
                     path.append(current)
                     current = visited[current]
-                path.reverse()
+                path.reverse()  # Là, on passe du LIFO au FIFO
                 return path
 
-            # Explore neighbors in residual graph
             if current in self.residual_graph:
                 for neighbor, capacity in self.residual_graph[current].items():
                     if neighbor not in visited and capacity > 0:
                         visited[neighbor] = current
                         queue.append(neighbor)
 
-        # No path found
+        # On a pas trouvé de chemin :(
         return None
 
     def ford_fulkerson(self) -> int:
@@ -300,37 +289,34 @@ class SolverFulkerson(Solver):
         int
             The maximum flow value, which equals the size of the maximum matching
         """
-        # Initialize flow to 0
+
         max_flow = 0
 
-        # Find augmenting paths and update residual graph
+        # Trouver flot augmentant et maj graphe résiduel
         path = self.find_augmenting_path()
         while path:
-            # Find bottleneck capacity
+            # On veut identifier le bottleneck
             min_capacity = float("inf")
             for i in range(len(path) - 1):
                 u, v = path[i], path[i + 1]
                 min_capacity = min(min_capacity, self.residual_graph[u][v])
 
-            # Update residual capacities
+            # maj capa résiduelle
             for i in range(len(path) - 1):
                 u, v = path[i], path[i + 1]
-                # Decrease forward capacity
+
                 self.residual_graph[u][v] -= min_capacity
 
-                # Increase backward capacity (create if doesn't exist)
+                # Prise en compte de la "capacité inverse" (prévenir de potentielles erreurs, prendre en compte annulations)
                 if v not in self.residual_graph:
                     self.residual_graph[v] = {}
                 if u not in self.residual_graph[v]:
                     self.residual_graph[v][u] = 0
                 self.residual_graph[v][u] += min_capacity
 
-            # Increase max flow by the bottleneck capacity
             max_flow += min_capacity
 
-            # Find next augmenting path
-            path = self.find_augmenting_path()
-            print(path)
+            path = self.find_augmenting_path()  # And again and again
 
         return max_flow
 
@@ -349,40 +335,32 @@ class SolverFulkerson(Solver):
         list[tuple[tuple[int, int], tuple[int, int]]]
             A list of matched pairs, where each pair is represented as ((i1, j1), (i2, j2))
         """
-        # Run Ford-Fulkerson algorithm
+
         max_flow = self.ford_fulkerson()
         print(f"Maximum flow: {max_flow}")
 
-        # Extract matching from residual graph - check backward edges more efficiently
+        # On extrait matching à partir du graphe
         matching_pairs = []
 
-        # Iterate only through even cells (connected to source)
         for i in range(self.grid.n):
             for j in range(self.grid.m):
                 if (i + j) % 2 == 0:  # Only check even cells
                     cell_id = f"cell_{i}_{j}"
 
-                    # Only check adjacent odd cells (up, down, left, right)
+                    # Haut bas droite gauche
                     adjacents = [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)]
 
                     for adj_i, adj_j in adjacents:
-                        # Verify cell is valid, odd, and adjacent
-                        if (
-                            0 <= adj_i < self.grid.n
-                            and 0 <= adj_j < self.grid.m
-                            and (adj_i + adj_j) % 2 == 1
-                        ):
+                        if 0 <= adj_i < self.grid.n and 0 <= adj_j < self.grid.m:
                             adj_cell_id = f"cell_{adj_i}_{adj_j}"
 
-                            # Check if there's a backward edge with positive capacity
-                            # This indicates flow was sent through this edge
                             if (
                                 adj_cell_id in self.residual_graph
                                 and cell_id in self.residual_graph[adj_cell_id]
                                 and self.residual_graph[adj_cell_id][cell_id] > 0
                             ):
                                 matching_pairs.append(((i, j), (adj_i, adj_j)))
-                                # Add cells to self.cells for scoring
+
                                 self.cells.append((i, j))
                                 self.cells.append((adj_i, adj_j))
 

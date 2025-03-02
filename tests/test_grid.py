@@ -20,7 +20,7 @@ class TestGrid(unittest.TestCase):
         """
         Set up test fixtures.
         """
-        # Create a small test grid
+
         self.grid = Grid(2, 3)
         self.grid.color = [[0, 4, 3], [2, 1, 0]]
         self.grid.value = [[5, 8, 4], [11, 1, 3]]
@@ -82,12 +82,12 @@ class TestGrid(unittest.TestCase):
         self.grid.color[0][0] = 0  # White
         self.grid.color[0][2] = 0  # White
         self.assertFalse(self.grid.is_pair_forbidden([(0, 0), (0, 2)]))
-        
+
         # Black-White pair (forbidden)
         self.grid.color[0][0] = 4  # Black
         self.grid.color[0][2] = 0  # White
         self.assertTrue(self.grid.is_pair_forbidden([(0, 0), (0, 2)]))
-        
+
         # Out of bounds
         with self.assertRaises(IndexError):
             self.grid.is_pair_forbidden([(5, 5), (0, 0)])
@@ -98,7 +98,7 @@ class TestGrid(unittest.TestCase):
         """
         # Value at (0, 0) is 5 and value at (1, 0) is 11
         self.assertEqual(self.grid.cost([(0, 0), (1, 0)]), 6)
-        
+
         # If the pair is forbidden, the cost should be 0
         # Make the pair forbidden by making one cell black
         original_color = self.grid.color[0][0]
@@ -115,8 +115,10 @@ class TestGrid(unittest.TestCase):
         self.grid.color = [[0, 0, 0], [0, 0, 0]]
         # Should have 2*(2-1) + 3*(3-1) = 8 pairs (horizontal and vertical)
         pairs = self.grid.all_pairs()
-        self.assertEqual(len(pairs), 7)  # 2 rows with 2 horizontal connections + 3 columns with 1 vertical connection
-        
+        self.assertEqual(
+            len(pairs), 7
+        )  # 2 rows with 2 horizontal connections + 3 columns with 1 vertical connection
+
         # Make a cell black to create forbidden pairs
         self.grid.color[0][1] = 4  # Black
         pairs_with_black = self.grid.all_pairs()
