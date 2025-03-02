@@ -51,7 +51,13 @@ class Grid:
         A flattened list of all Cell objects in the grid
     """
 
-    def __init__(self, n: int, m: int, color: list[list[int]] = None, value: list[list[int]] = None) -> None:
+    def __init__(
+        self,
+        n: int,
+        m: int,
+        color: list[list[int]] = None,
+        value: list[list[int]] = None,
+    ) -> None:
         """
         Initializes the grid.
 
@@ -86,7 +92,7 @@ class Grid:
     def __str__(self) -> str:
         """
         Returns a string representation of the grid showing colors and values.
-        
+
         Returns:
         --------
         str
@@ -103,7 +109,7 @@ class Grid:
     def __repr__(self) -> str:
         """
         Returns a concise representation of the grid with number of rows and columns.
-        
+
         Returns:
         --------
         str
@@ -114,12 +120,12 @@ class Grid:
     def plot(self) -> None:
         """
         Plots a visual representation of the grid using matplotlib.
-        
+
         Creates a colored grid visualization where:
         - Each cell is colored according to its color attribute
         - The cell's numerical value is displayed in the center
         - Grid lines are drawn between cells
-        
+
         Returns:
         --------
         None
@@ -128,10 +134,10 @@ class Grid:
 
         rgb_tab = [
             (255, 255, 255),  # White
-            (208, 0, 0),      # Red
-            (68, 114, 196),   # Blue
-            (112, 173, 71),   # Green
-            (0, 0, 0),        # Black
+            (208, 0, 0),  # Red
+            (68, 114, 196),  # Blue
+            (112, 173, 71),  # Green
+            (0, 0, 0),  # Black
         ]
 
         color_map = []
@@ -145,25 +151,25 @@ class Grid:
         ax.matshow(color_map)
         plt.gca().set_xticks([x - 0.5 for x in range(1, self.m)], minor="true")
         plt.gca().set_yticks([x - 0.5 for x in range(1, self.m)], minor="true")
-        ax.grid(visible=True, which="minor")  # Draw grid between cells
+        ax.grid(visible=True, which="minor")
         plt.show()
 
     def is_forbidden(self, i: int, j: int) -> bool:
         """
         Returns True if the cell (i, j) is black and False otherwise.
-        
+
         Parameters:
         -----------
         i: int
             The row index of the cell
         j: int
             The column index of the cell
-            
+
         Returns:
         --------
         bool
             True if the cell is black (forbidden), False otherwise
-            
+
         Raises:
         -------
         IndexError
@@ -178,19 +184,19 @@ class Grid:
         """
         Returns True if the pair is forbidden and False otherwise.
         A bit more complex and relevant than simply checking if one of the cells is black.
-        
+
         Parameters:
         -----------
         pair: list[tuple[int, int]]
             A pair of cells represented as a list of two tuples [(i1, j1), (i2, j2)]
             where (i1, j1) are the coordinates of the first cell and
             (i2, j2) are the coordinates of the second cell
-            
+
         Returns:
         --------
         bool
             True if the pair is forbidden, False otherwise
-            
+
         Raises:
         -------
         IndexError
@@ -232,7 +238,7 @@ class Grid:
         """
 
         if self.is_pair_forbidden(pair):
-            return 0  # or some other value indicating the pair is forbidden
+            return 0  # Essayer de prévenir d'éventuelles erreurs
 
         valeur1 = self.get_coordinate_value(pair[0][0], pair[0][1])
         valeur2 = self.get_coordinate_value(pair[1][0], pair[1][1])
@@ -266,14 +272,14 @@ class Grid:
     def get_coordinate_color(self, i: int, j: int) -> str:
         """
         Returns the color of cell (i, j) as a string instead of a number.
-        
+
         Parameters:
         -----------
         i: int
             The row index of the cell
         j: int
             The column index of the cell
-            
+
         Returns:
         --------
         str
@@ -286,14 +292,14 @@ class Grid:
     def get_coordinate_value(self, i: int, j: int) -> int:
         """
         Returns the value of cell (i, j).
-        
+
         Parameters:
         -----------
         i: int
             The row index of the cell
         j: int
             The column index of the cell
-            
+
         Returns:
         --------
         int
@@ -306,12 +312,12 @@ class Grid:
     def cell_init(self) -> None:
         """
         Initializes all the cells of the Grid.
-        
+
         This method creates Cell objects for each position in the grid and stores them
         in two different structures:
         - self.cells: A 2D list where cells can be accessed by their coordinates
         - self.cells_list: A flattened list containing all cells
-        
+
         Returns:
         --------
         None
@@ -327,10 +333,10 @@ class Grid:
             for j in range(self.m)
         ]
 
-        # No BFS or DFS here
+        # Vraiment pas besoin de DFS ou BFS.....
 
     @classmethod
-    def grid_from_file(cls, file_name: str, read_values: bool = False) -> 'Grid':
+    def grid_from_file(cls, file_name: str, read_values: bool = False) -> "Grid":
         """
         Creates a grid object from class Grid,
         initialized with the information from the file file_name.
@@ -352,7 +358,7 @@ class Grid:
         --------
         Grid
             The grid initialized from the file data
-            
+
         Raises:
         -------
         FileNotFoundError
@@ -424,12 +430,12 @@ class Cell:
         self.j = j
         self.color = color
         self.value = value
-        self.ispair = (i + j) % 2
+        self.iseven = (i + j) % 2
 
     def __str__(self) -> str:
         """
         Returns a string representation of the cell including coordinates, color, and value.
-        
+
         Returns:
         --------
         str
@@ -442,7 +448,7 @@ class Cell:
     def __repr__(self) -> str:
         """
         Returns a concise representation of the cell with its coordinates.
-        
+
         Returns:
         --------
         str

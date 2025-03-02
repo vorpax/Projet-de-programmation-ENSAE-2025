@@ -28,7 +28,7 @@ class TestCell(unittest.TestCase):
         self.assertEqual(self.cell.j, 2)
         self.assertEqual(self.cell.color, 3)
         self.assertEqual(self.cell.value, 4)
-        self.assertEqual(self.cell.ispair, 1)  # (1+2)%2 = 1
+        self.assertEqual(self.cell.iseven, 1)  # (1+2)%2 = 1
 
     def test_str_representation(self):
         """
@@ -45,25 +45,25 @@ class TestCell(unittest.TestCase):
 
     def test_parity_calculation(self):
         """
-        Test that ispair attribute is correctly calculated.
+        Test that iseven attribute is correctly calculated.
         """
         # Even parity cells
         cell1 = Cell(0, 0, 0, 1)  # 0+0 = 0 (even)
         cell2 = Cell(1, 1, 0, 1)  # 1+1 = 2 (even)
         cell3 = Cell(2, 2, 0, 1)  # 2+2 = 4 (even)
-        
+
         # Odd parity cells
         cell4 = Cell(0, 1, 0, 1)  # 0+1 = 1 (odd)
         cell5 = Cell(1, 0, 0, 1)  # 1+0 = 1 (odd)
         cell6 = Cell(2, 3, 0, 1)  # 2+3 = 5 (odd)
-        
-        self.assertEqual(cell1.ispair, 0)
-        self.assertEqual(cell2.ispair, 0)
-        self.assertEqual(cell3.ispair, 0)
-        
-        self.assertEqual(cell4.ispair, 1)
-        self.assertEqual(cell5.ispair, 1)
-        self.assertEqual(cell6.ispair, 1)
+
+        self.assertEqual(cell1.iseven, 0)
+        self.assertEqual(cell2.iseven, 0)
+        self.assertEqual(cell3.iseven, 0)
+
+        self.assertEqual(cell4.iseven, 1)
+        self.assertEqual(cell5.iseven, 1)
+        self.assertEqual(cell6.iseven, 1)
 
 
 if __name__ == "__main__":
