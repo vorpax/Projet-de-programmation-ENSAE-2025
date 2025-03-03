@@ -291,6 +291,8 @@ class Cell:
         The value of the cell
     """
 
+
+
     def __init__(self, i, j, color, value):
         """
         Initializes the cell.
@@ -324,3 +326,4 @@ class Cell:
         Returns a representation of the cell with its coordinates.
         """
         return f"<grid.Cell: i={self.i}, j={self.j}>"
+

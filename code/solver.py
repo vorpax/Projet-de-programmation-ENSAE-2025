@@ -104,3 +104,12 @@ class SolverGreedy(Solver):
             self.cells.append(pair[1])
 
         return chosen_pairs
+
+
+# Point vocabulaire: 
+# impaire : i.e., les cellules (i, j) telles que i + j est impaire
+# paire : i.e., les cellules (i, j) telles que i + j est paire
+# apairable : deux cases sont dites 0-pairables si l'une est paire et l'autre impaire
+# pairable : deux cases sont dites pairables si elles remplissent les conditions de proximité et de couleur pour être associées 
+
+
