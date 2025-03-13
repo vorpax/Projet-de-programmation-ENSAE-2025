@@ -242,6 +242,7 @@ class Grid:
 
         valeur1 = self.get_coordinate_value(pair[0][0], pair[0][1])
         valeur2 = self.get_coordinate_value(pair[1][0], pair[1][1])
+
         return abs(valeur1 - valeur2)
 
     def all_pairs(self) -> list[list[tuple[int, int]]]:

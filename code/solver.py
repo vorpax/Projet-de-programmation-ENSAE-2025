@@ -6,7 +6,10 @@ including SolverEmpty, SolverGreedy, and SolverFulkerson (which uses the
 Ford-Fulkerson algorithm for maximum bipartite matching).
 """
 
+from doctest import debug
+from math import inf
 from grid import Grid
+import debugpy
 
 
 class Solver:
@@ -366,3 +369,50 @@ class SolverFulkerson(Solver):
 
         self.pairs = matching_pairs
         return matching_pairs
+
+
+class SolverHungarian(Solver):
+    """
+    A solver implementing the Hungarian algorithm for maximum bipartite matching.
+    """
+
+    def __init__(self, grid):
+        """
+        Initializes the solver with a grid and sets up the adjacency dictionary.
+        """
+        super().__init__(grid)
+        self.dict_adjacency = {}
+
+    def adjacency_dict_init(self):
+        """
+        Initializes the adjacency dictionary for the Hungarian algorithm.
+        """
+        dict_test = {}
+        for i in range(self.grid.n):
+            for j in range(self.grid.m):
+                dict_test[f"cell_{i}_{j}"] = float("inf")
+
+        for i in range(self.grid.n):
+            for j in range(self.grid.m):
+                self.dict_adjacency[f"cell_{i}_{j}"] = dict_test.copy()
+
+        # Déjà, par défaut on a infini
+        for cell in self.grid.cells_list:
+            adjacents = [
+                (cell.i + 1, cell.j),
+                (cell.i - 1, cell.j),
+                (cell.i, cell.j + 1),
+                (cell.i, cell.j - 1),
+            ]
+
+            for adj_i, adj_j in adjacents:
+                if 0 <= adj_i < self.grid.n and 0 <= adj_j < self.grid.m:
+                    if not self.grid.is_pair_forbidden(
+                        ((cell.i, cell.j), (adj_i, adj_j))
+                    ):
+                        self.dict_adjacency[f"cell_{cell.i}_{cell.j}"][
+                            f"cell_{adj_i}_{adj_j}"
+                        ] = self.grid.cost(((cell.i, cell.j), (adj_i, adj_j)))
+                        self.dict_adjacency[f"cell_{adj_i}_{adj_j}"][
+                            f"cell_{cell.i}_{cell.j}"
+                        ] = self.grid.cost(((cell.i, cell.j), (adj_i, adj_j)))
