@@ -6,8 +6,10 @@ including SolverEmpty, SolverGreedy, and SolverFulkerson (which uses the
 Ford-Fulkerson algorithm for maximum bipartite matching).
 """
 
+from doctest import debug
 from math import inf
 from grid import Grid
+import debugpy
 
 
 class Solver:
@@ -390,8 +392,11 @@ class SolverHungarian(Solver):
             for j in range(self.grid.m):
                 dict_test[f"cell_{i}_{j}"] = float("inf")
 
-        # Déjà, par défaut on a infini
+        for i in range(self.grid.n):
+            for j in range(self.grid.m):
+                self.dict_adjacency[f"cell_{i}_{j}"] = dict_test.copy()
 
+        # Déjà, par défaut on a infini
         for cell in self.grid.cells_list:
             adjacents = [
                 (cell.i + 1, cell.j),
@@ -399,7 +404,6 @@ class SolverHungarian(Solver):
                 (cell.i, cell.j + 1),
                 (cell.i, cell.j - 1),
             ]
-            self.dict_adjacency[f"cell_{cell.i}_{cell.j}"] = dict_test
 
             for adj_i, adj_j in adjacents:
                 if 0 <= adj_i < self.grid.n and 0 <= adj_j < self.grid.m:
@@ -408,4 +412,7 @@ class SolverHungarian(Solver):
                     ):
                         self.dict_adjacency[f"cell_{cell.i}_{cell.j}"][
                             f"cell_{adj_i}_{adj_j}"
+                        ] = self.grid.cost(((cell.i, cell.j), (adj_i, adj_j)))
+                        self.dict_adjacency[f"cell_{adj_i}_{adj_j}"][
+                            f"cell_{cell.i}_{cell.j}"
                         ] = self.grid.cost(((cell.i, cell.j), (adj_i, adj_j)))

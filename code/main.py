@@ -14,7 +14,7 @@ DATA_PATH = "./input/"
 FILE_NAME = DATA_PATH + "grid01.in"
 grid = Grid.grid_from_file(FILE_NAME, read_values=True)
 
-# grid.plot()
+grid.plot()
 
 grid.cell_init()
 
@@ -41,11 +41,16 @@ GrandPereExplorer = SolverHungarian(grid)
 GrandPereExplorer.adjacency_dict_init()
 
 
-def AfficherMatrice():
+def afficher_matrice():
+    """
+    Displays the adjacency matrix of the grid, weighted by the cost.
+    """
+
     listeazeubi = GrandPereExplorer.dict_adjacency.values()
+
     for i in listeazeubi:
         print(list(i.values()))
 
 
-AfficherMatrice()
-print("a")
+afficher_matrice()
+print("j'habite une maison citrouille")
