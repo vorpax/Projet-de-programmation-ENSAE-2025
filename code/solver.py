@@ -6,10 +6,8 @@ including SolverEmpty, SolverGreedy, and SolverFulkerson (which uses the
 Ford-Fulkerson algorithm for maximum bipartite matching).
 """
 
-from doctest import debug
 from math import inf
 from grid import Grid
-import debugpy
 
 
 class Solver:
@@ -390,7 +388,7 @@ class SolverHungarian(Solver):
         dict_test = {}
         for i in range(self.grid.n):
             for j in range(self.grid.m):
-                dict_test[f"cell_{i}_{j}"] = float("inf")
+                dict_test[f"cell_{i}_{j}"] = inf
 
         for i in range(self.grid.n):
             for j in range(self.grid.m):
@@ -416,3 +414,30 @@ class SolverHungarian(Solver):
                         self.dict_adjacency[f"cell_{adj_i}_{adj_j}"][
                             f"cell_{cell.i}_{cell.j}"
                         ] = self.grid.cost(((cell.i, cell.j), (adj_i, adj_j)))
+
+    def hungarian_algorithm(self):
+        cost_matrix = self.dict_adjacency.copy()
+        for i in range(self.grid.n):
+            for j in range(self.grid.m):
+                sorted_row = sorted(
+                    cost_matrix[f"cell_{i}_{j}"].items(), key=lambda x: x[1]
+                )
+                min_value = sorted_row[0][1] if sorted_row[0][1] != inf else 0
+                for key in cost_matrix[f"cell_{i}_{j}"]:
+                    cost_matrix[f"cell_{i}_{j}"][key] -= min_value
+
+        for i in range(self.grid.n):
+            for j in range(self.grid.m):
+                column = [
+                    cost_matrix[f"cell_{i}_{j}"][f"cell_{k}_{m}"]
+                    for k in range(self.grid.n)
+                    for m in range(self.grid.m)
+                ]
+
+                min_value = min(column) if min(column) != inf else 0
+                for k in range(self.grid.n):
+                    for m in range(self.grid.m):
+                        cost_matrix[f"cell_{k}_{m}"][f"cell_{i}_{j}"] -= min_value
+
+        print(cost_matrix)
+        return cost_matrix

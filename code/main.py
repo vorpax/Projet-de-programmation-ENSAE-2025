@@ -14,9 +14,10 @@ DATA_PATH = "./input/"
 FILE_NAME = DATA_PATH + "grid01.in"
 grid = Grid.grid_from_file(FILE_NAME, read_values=True)
 
-grid.plot()
+# grid.plot()
 
 grid.cell_init()
+
 
 # solver = SolverFulkerson(grid)
 # matching_pairs = solver.run()
@@ -39,6 +40,17 @@ grid.cell_init()
 
 GrandPereExplorer = SolverHungarian(grid)
 GrandPereExplorer.adjacency_dict_init()
+print("j'habite une maison citrouille")
+
+
+def la_hongrie():
+    """
+    Runs the Hungarian algorithm to find the optimal matching.
+    """
+
+    cost_matrix = GrandPereExplorer.hungarian_algorithm()
+    print(cost_matrix)
+    print("jroule que en CR jpeux pas trahier Honda")
 
 
 def afficher_matrice():
@@ -52,5 +64,8 @@ def afficher_matrice():
         print(list(i.values()))
 
 
-afficher_matrice()
+# afficher_matrice()
+
+la_hongrie()
+
 print("j'habite une maison citrouille")
