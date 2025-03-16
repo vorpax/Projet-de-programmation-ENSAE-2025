@@ -371,73 +371,363 @@ class SolverFulkerson(Solver):
 
 class SolverHungarian(Solver):
     """
-    A solver implementing the Hungarian algorithm for maximum bipartite matching.
+    A solver implementing the Hungarian algorithm for minimum weight bipartite matching.
+
+    This solver models the grid as a bipartite graph where:
+    - Even cells (where i+j is even) are in one set
+    - Odd cells (where i+j is odd) are in the other set
+    - The cost of a pair is the absolute difference between their values
+
+    The Hungarian Algorithm then finds the minimum cost assignment (matching) between
+    the two sets of cells.
+
+    Attributes:
+    -----------
+    grid: Grid
+        The grid to solve
+    even_cells: list[tuple[int, int]]
+        List of cells with even parity (i+j is even)
+    odd_cells: list[tuple[int, int]]
+        List of cells with odd parity (i+j is odd)
+    cost_matrix: list[list[int]]
+        The cost matrix for the Hungarian algorithm
     """
 
     def __init__(self, grid):
         """
-        Initializes the solver with a grid and sets up the adjacency dictionary.
+        Initializes the solver with a grid and sets up the needed data structures.
+
+        Parameters:
+        -----------
+        grid: Grid
+            The grid to solve
         """
         super().__init__(grid)
-        self.dict_adjacency = {}
+        self.grid.cell_init()  # Ensure cells are initialized
+        self.even_cells = []
+        self.odd_cells = []
+        self.cost_matrix = []
+        self._initialize_cells()
 
-    def adjacency_dict_init(self):
+    def _initialize_cells(self):
         """
-        Initializes the adjacency dictionary for the Hungarian algorithm.
+        Separates cells into even and odd groups based on coordinate parity.
         """
-        dict_test = {}
         for i in range(self.grid.n):
             for j in range(self.grid.m):
-                dict_test[f"cell_{i}_{j}"] = inf
+                if (i + j) % 2 == 0:
+                    self.even_cells.append((i, j))
+                else:
+                    self.odd_cells.append((i, j))
 
-        for i in range(self.grid.n):
-            for j in range(self.grid.m):
-                self.dict_adjacency[f"cell_{i}_{j}"] = dict_test.copy()
+    def _create_cost_matrix(self):
+        """
+        Creates the cost matrix for the Hungarian algorithm.
 
-        # Déjà, par défaut on a infini
-        for cell in self.grid.cells_list:
-            adjacents = [
-                (cell.i + 1, cell.j),
-                (cell.i - 1, cell.j),
-                (cell.i, cell.j + 1),
-                (cell.i, cell.j - 1),
-            ]
+        The cost matrix has dimensions len(even_cells) x len(odd_cells).
+        If a pair (even_cell, odd_cell) is valid, its cost is the absolute difference
+        of their values. Otherwise, the cost is infinity.
 
-            for adj_i, adj_j in adjacents:
-                if 0 <= adj_i < self.grid.n and 0 <= adj_j < self.grid.m:
-                    if not self.grid.is_pair_forbidden(
-                        ((cell.i, cell.j), (adj_i, adj_j))
-                    ):
-                        self.dict_adjacency[f"cell_{cell.i}_{cell.j}"][
-                            f"cell_{adj_i}_{adj_j}"
-                        ] = self.grid.cost(((cell.i, cell.j), (adj_i, adj_j)))
-                        self.dict_adjacency[f"cell_{adj_i}_{adj_j}"][
-                            f"cell_{cell.i}_{cell.j}"
-                        ] = self.grid.cost(((cell.i, cell.j), (adj_i, adj_j)))
+        Returns:
+        --------
+        list[list[int]]
+            The cost matrix with rows for even cells and columns for odd cells
+        """
+        # Initialize with infinity (represents invalid pairs)
+        cost_matrix = [
+            [inf for _ in range(len(self.odd_cells))]
+            for _ in range(len(self.even_cells))
+        ]
+
+        # Fill in valid pairs with their costs
+        for i, even_cell in enumerate(self.even_cells):
+            for j, odd_cell in enumerate(self.odd_cells):
+                # Check if cells are adjacent and form a valid pair
+                if (
+                    abs(even_cell[0] - odd_cell[0]) == 1 and even_cell[1] == odd_cell[1]
+                ) or (
+                    even_cell[0] == odd_cell[0] and abs(even_cell[1] - odd_cell[1]) == 1
+                ):
+                    # Check if the pair is not forbidden
+                    if not self.grid.is_pair_forbidden([even_cell, odd_cell]):
+                        cost_matrix[i][j] = self.grid.cost((even_cell, odd_cell))
+
+        self.cost_matrix = cost_matrix
+        return cost_matrix
+
+    def _find_min_value_in_row(self, row):
+        """
+        Find the minimum value in a row of the cost matrix.
+
+        Parameters:
+        -----------
+        row: list[int]
+            A row of the cost matrix
+
+        Returns:
+        --------
+        int
+            The minimum value in the row, or 0 if all values are infinity
+        """
+        min_val = inf
+        for val in row:
+            if val < min_val:
+                min_val = val
+        return min_val if min_val != inf else 0
+
+    def _find_min_value_in_col(self, matrix, col_index):
+        """
+        Find the minimum value in a column of the cost matrix.
+
+        Parameters:
+        -----------
+        matrix: list[list[int]]
+            The cost matrix
+        col_index: int
+            The index of the column
+
+        Returns:
+        --------
+        int
+            The minimum value in the column, or 0 if all values are infinity
+        """
+        min_val = inf
+        for row in matrix:
+            if row[col_index] < min_val:
+                min_val = row[col_index]
+        return min_val if min_val != inf else 0
+
+    def _is_assignment_complete(self, assignment):
+        """
+        Check if the assignment is complete (all rows have an assignment).
+
+        Parameters:
+        -----------
+        assignment: list[int]
+            The current assignment
+
+        Returns:
+        --------
+        bool
+            True if the assignment is complete, False otherwise
+        """
+        return all(val != -1 for val in assignment)
+
+    def _find_augmenting_path(self, matrix, row_cover, col_cover, assignment):
+        """
+        Find an augmenting path in the reduced cost matrix.
+
+        Parameters:
+        -----------
+        matrix: list[list[int]]
+            The reduced cost matrix
+        row_cover: list[bool]
+            Boolean list indicating which rows are covered
+        col_cover: list[bool]
+            Boolean list indicating which columns are covered
+        assignment: list[int]
+            The current assignment (row -> column)
+
+        Returns:
+        --------
+        tuple[list[int], list[bool], list[bool]]
+            Updated assignment, row_cover, and col_cover
+        """
+        n = len(matrix)
+        m = len(matrix[0]) if n > 0 else 0
+
+        # Cover rows that are all infinity
+        for i in range(n):
+            if not row_cover[i] and all(
+                matrix[i][j] == inf for j in range(m) if not col_cover[j]
+            ):
+                row_cover[i] = True
+
+        # Cover columns that are all infinity
+        for j in range(m):
+            if not col_cover[j] and all(
+                matrix[i][j] == inf for i in range(n) if not row_cover[i]
+            ):
+                col_cover[j] = True
+
+        # Step 1: Find a non-covered zero
+        iteration_count = 0
+        max_iterations = n * m * 2  # Safe upper bound
+
+        while iteration_count < max_iterations:
+            iteration_count += 1
+            # Find a non-covered zero
+            zero_found = False
+            zero_row, zero_col = -1, -1
+
+            for i in range(n):
+                if row_cover[i]:
+                    continue
+                for j in range(m):
+                    if not col_cover[j] and matrix[i][j] == 0:
+                        zero_row, zero_col = i, j
+                        zero_found = True
+                        break
+                if zero_found:
+                    break
+
+            # If no non-covered zero is found, find the minimum non-covered value
+            if not zero_found:
+                # Check if all rows are covered or all columns are covered
+                if all(row_cover) or all(col_cover):
+                    return assignment, row_cover, col_cover
+
+                # Find the minimum non-covered value
+                min_val = inf
+                for i in range(n):
+                    if row_cover[i]:
+                        continue
+                    for j in range(m):
+                        if not col_cover[j] and matrix[i][j] < min_val:
+                            min_val = matrix[i][j]
+
+                # If min_val is still infinity, it means all remaining cells are infinity
+                if min_val == inf:
+                    # Cover all remaining rows and columns
+                    for i in range(n):
+                        row_cover[i] = True
+                    for j in range(m):
+                        col_cover[j] = True
+                    return assignment, row_cover, col_cover
+
+                # Add the minimum value to covered rows
+                for i in range(n):
+                    if row_cover[i]:
+                        for j in range(m):
+                            if matrix[i][j] != inf:
+                                matrix[i][j] += min_val
+
+                # Subtract the minimum value from non-covered columns
+                for j in range(m):
+                    if not col_cover[j]:
+                        for i in range(n):
+                            if matrix[i][j] != inf:
+                                matrix[i][j] -= min_val
+
+                continue
+
+            # Mark the zero
+            assignment[zero_row] = zero_col
+
+            # Check if the column already has an assignment
+            col_assigned = False
+            for i in range(n):
+                if i != zero_row and assignment[i] == zero_col:
+                    col_assigned = True
+                    row_cover[i] = False  # Uncover the row
+                    col_cover[zero_col] = True  # Cover the column
+                    break
+
+            # If column is not assigned, we've found an augmenting path
+            if not col_assigned:
+                return assignment, row_cover, col_cover
+
+            # Cover the row of the zero
+            row_cover[zero_row] = True
+        if iteration_count == max_iterations:
+            print("Maximum iterations reached")
 
     def hungarian_algorithm(self):
-        cost_matrix = self.dict_adjacency.copy()
-        for i in range(self.grid.n):
-            for j in range(self.grid.m):
-                sorted_row = sorted(
-                    cost_matrix[f"cell_{i}_{j}"].items(), key=lambda x: x[1]
-                )
-                min_value = sorted_row[0][1] if sorted_row[0][1] != inf else 0
-                for key in cost_matrix[f"cell_{i}_{j}"]:
-                    cost_matrix[f"cell_{i}_{j}"][key] -= min_value
+        """
+        Implements the Hungarian algorithm for minimum cost bipartite matching.
 
-        for i in range(self.grid.n):
-            for j in range(self.grid.m):
-                column = [
-                    cost_matrix[f"cell_{i}_{j}"][f"cell_{k}_{m}"]
-                    for k in range(self.grid.n)
-                    for m in range(self.grid.m)
-                ]
+        The algorithm:
+        1. Create the cost matrix
+        2. Reduce rows and columns to get zeros
+        3. Find a set of independent zeros that form a valid assignment
+        4. If the assignment is complete, return it
+        5. Otherwise, adjust the cost matrix and repeat
 
-                min_value = min(column) if min(column) != inf else 0
-                for k in range(self.grid.n):
-                    for m in range(self.grid.m):
-                        cost_matrix[f"cell_{k}_{m}"][f"cell_{i}_{j}"] -= min_value
+        Returns:
+        --------
+        list[tuple[tuple[int, int], tuple[int, int]]]
+            A list of matched pairs with minimum total cost
+        """
+        cost_matrix = self._create_cost_matrix()
+        n = len(cost_matrix)
+        m = len(cost_matrix[0]) if n > 0 else 0
 
-        print(cost_matrix)
-        return cost_matrix
+        if n == 0 or m == 0:
+            return []
+
+        # Step 1: Subtract row minima
+        for i in range(n):
+            min_val = self._find_min_value_in_row(cost_matrix[i])
+            for j in range(m):
+                if cost_matrix[i][j] != inf:
+                    cost_matrix[i][j] -= min_val
+
+        # Step 2: Subtract column minima
+        for j in range(m):
+            min_val = self._find_min_value_in_col(cost_matrix, j)
+            for i in range(n):
+                if cost_matrix[i][j] != inf:
+                    cost_matrix[i][j] -= min_val
+
+        # Step 3: Find an initial assignment
+        assignment = [-1] * n  # Maps each row to a column (-1 means unassigned)
+
+        # Try to assign zeros
+        for i in range(n):
+            for j in range(m):
+                if cost_matrix[i][j] == 0 and assignment[i] == -1:
+                    # Check if column j is not assigned yet
+                    col_assigned = False
+                    for k in range(i):
+                        if assignment[k] == j:
+                            col_assigned = True
+                            break
+
+                    if not col_assigned:
+                        assignment[i] = j
+
+        # Step 4: If the assignment is not complete, find augmenting paths
+        while not self._is_assignment_complete(assignment):
+            row_cover = [False] * n
+            col_cover = [False] * m
+
+            # Mark all rows with assignments
+            for i in range(n):
+                if assignment[i] != -1:
+                    row_cover[i] = True
+
+            # Find an augmenting path
+            assignment, row_cover, col_cover = self._find_augmenting_path(
+                cost_matrix, row_cover, col_cover, assignment
+            )
+
+        # Convert the assignment to pairs
+        pairs = []
+        for i, j in enumerate(assignment):
+            if j != -1:
+                even_cell = self.even_cells[i]
+                odd_cell = self.odd_cells[j]
+                pairs.append((even_cell, odd_cell))
+
+        return pairs
+
+    def run(self):
+        """
+        Runs the Hungarian algorithm solver and returns the matching pairs.
+
+        Returns:
+        --------
+        list[tuple[tuple[int, int], tuple[int, int]]]
+            A list of matched pairs, where each pair is represented as ((i1, j1), (i2, j2))
+        """
+        matching_pairs = self.hungarian_algorithm()
+
+        # Update the solver's pairs and cells lists
+        self.pairs = matching_pairs
+        self.cells = []
+        for pair in matching_pairs:
+            self.cells.append(pair[0])
+            self.cells.append(pair[1])
+
+        print(f"Hungarian algorithm found {len(matching_pairs)} pairs")
+        return matching_pairs
