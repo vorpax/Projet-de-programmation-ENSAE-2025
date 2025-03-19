@@ -39,7 +39,9 @@ grid.cell_init()
 
 
 GrandPereExplorer = SolverHungarian(grid)
-GrandPereExplorer.adjacency_dict_init()
+# GrandPereExplorer.adjacency_dict_init()
+
+GrandPereExplorer.cost_matrix_init()
 print("j'habite une maison citrouille")
 
 
@@ -66,6 +68,6 @@ def afficher_matrice():
 
 # afficher_matrice()
 
-la_hongrie()
+# la_hongrie()
 
 print("j'habite une maison citrouille")

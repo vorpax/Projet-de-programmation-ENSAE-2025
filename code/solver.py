@@ -380,6 +380,56 @@ class SolverHungarian(Solver):
         """
         super().__init__(grid)
         self.dict_adjacency = {}
+        self.cost_matrix = self.cost_matrix_init()
+
+    def cost_matrix_init(self):
+        """
+        Initializes the cost matrix for the Hungarian algorithm.
+        """
+        processed_cells = []
+        cost_row = [inf] * self.grid.m * self.grid.n
+        cost_matrix = [cost_row.copy() for _ in range(self.grid.n * self.grid.m)]
+        # cost_matrix = (
+        #     [[inf].copy() * self.grid.m * self.grid.n].copy()
+        #     * self.grid.m
+        #     * self.grid.n
+        # )
+        print(cost_matrix)
+        print("brek")
+        # cost_matrix = [cost_matrix.copy() for _ in range(self.grid.n)]
+        total_size = self.grid.n * self.grid.m  # i * self.grid.m + j
+        for k in range(total_size):
+            i = k % (self.grid.m - 1)
+            j = k // (self.grid.m - 1)
+
+            adjacents = [
+                (i + 1, j),
+                (i - 1, j),
+                (i, j + 1),
+                (i, j - 1),
+            ]
+            for adj_i, adj_j in adjacents:
+                p = adj_i * self.grid.m + adj_j
+
+                if 0 <= adj_i < self.grid.n and 0 <= adj_j < self.grid.m:
+                    if not self.grid.is_pair_forbidden(((i, j), (adj_i, adj_j))):
+                        cost_matrix[k][p] = self.grid.cost(((i, j), (adj_i, adj_j)))
+                        cost_matrix[p][k] = self.grid.cost(((i, j), (adj_i, adj_j)))
+            # for p in range(total_size):
+            #     q = p % (self.grid.m - 1)
+            #     r = p // (self.grid.m - 1)
+            #     if ((i, j), (q, r)) in processed_cells:
+            #         print("chomage, je suis au chomage")
+
+            #     processed_cells.append(((i, j), (q, r)))
+            #     print(f"i = {i}, j = {j}, q={q}, r={r} p = {p}, k = {k}")
+            #     if not self.grid.is_pair_forbidden(((i, j), (q, r))):
+            #         cost_matrix[k][p] = self.grid.cost(((i, j), (q, r)))
+            #         # cost_matrix[p][k] = self.grid.cost(((i, j), (q, r)))
+            #     else:
+            #         print("pair forbidden i= {i}, j={j}, q={q}, r={r}")
+
+        return cost_matrix
 
     def adjacency_dict_init(self):
         """
