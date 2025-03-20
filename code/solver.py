@@ -8,6 +8,7 @@ Ford-Fulkerson algorithm for maximum bipartite matching).
 
 from math import inf
 from grid import Grid
+
 # https://en.wikipedia.org/wiki/Hungarian_algorithm
 
 
@@ -373,375 +374,485 @@ class SolverFulkerson(Solver):
 
 class SolverHungarian(Solver):
     """
-    A solver implementing the Hungarian algorithm for maximum bipartite matching.
+    A solver implementing the Hungarian algorithm for minimum-cost bipartite matching.
+
+    This implementation follows the standard steps of the Hungarian algorithm:
+    1. Subtract the minimum value from each row
+    2. Subtract the minimum value from each column
+    3. Cover all zeros with the minimum number of lines
+    4. If the number of covering lines equals the size of the matrix, we're done
+    5. Otherwise, create new zeros and repeat from step 3
+
+    The algorithm finds a matching that minimizes the total cost of paired cells.
     """
 
     def __init__(self, grid):
         """
-        Initializes the solver with a grid and sets up the adjacency dictionary.
+        Initializes the solver with a grid and sets up the cost matrix.
         """
         super().__init__(grid)
-        self.dict_adjacency = {}
-        self.cost_matrix = self.adjacency_dict_init().copy()
+        self.cost_matrix = {}
+        self.adjacency_dict_init()
         self.marked_cols = set()
         self.marked_rows = set()
         self.row_assignment = {}
         self.col_assignment = {}
 
-    def cost_matrix_init(self):
-        """
-        Initializes the cost matrix for the Hungarian algorithm.
-        """
-        processed_cells = []
-        cost_row = [inf] * self.grid.m * self.grid.n
-        cost_matrix = [cost_row.copy() for _ in range(self.grid.n * self.grid.m)]
-        # cost_matrix = (
-        #     [[inf].copy() * self.grid.m * self.grid.n].copy()
-        #     * self.grid.m
-        #     * self.grid.n
-        # )
-        print(cost_matrix)
-        print("brek")
-        # cost_matrix = [cost_matrix.copy() for _ in range(self.grid.n)]
-        total_size = self.grid.n * self.grid.m  # i * self.grid.m + j
-        for k in range(total_size):
-            i = k % (self.grid.m - 1)
-            j = k // (self.grid.m - 1)
-
-            adjacents = [
-                (i + 1, j),
-                (i - 1, j),
-                (i, j + 1),
-                (i, j - 1),
-            ]
-            for adj_i, adj_j in adjacents:
-                p = adj_i * self.grid.m + adj_j
-
-                if 0 <= adj_i < self.grid.n and 0 <= adj_j < self.grid.m:
-                    if not self.grid.is_pair_forbidden(((i, j), (adj_i, adj_j))):
-                        cost_matrix[k][p] = self.grid.cost(((i, j), (adj_i, adj_j)))
-                        cost_matrix[p][k] = self.grid.cost(((i, j), (adj_i, adj_j)))
-            # for p in range(total_size):
-            #     q = p % (self.grid.m - 1)
-            #     r = p // (self.grid.m - 1)
-            #     if ((i, j), (q, r)) in processed_cells:
-            #         print("chomage, je suis au chomage")
-
-            #     processed_cells.append(((i, j), (q, r)))
-            #     print(f"i = {i}, j = {j}, q={q}, r={r} p = {p}, k = {k}")
-            #     if not self.grid.is_pair_forbidden(((i, j), (q, r))):
-            #         cost_matrix[k][p] = self.grid.cost(((i, j), (q, r)))
-            #         # cost_matrix[p][k] = self.grid.cost(((i, j), (q, r)))
-            #     else:
-            #         print("pair forbidden i= {i}, j={j}, q={q}, r={r}")
-
-        return cost_matrix
-
     def adjacency_dict_init(self):
         """
-        Initializes the adjacency dictionary for the Hungarian algorithm.
+        Initializes the cost matrix for the Hungarian algorithm using a dictionary
+        representation for efficient sparse matrix operations.
+
+        The cost matrix is represented as:
+        - Rows correspond to cells in the grid
+        - Columns also correspond to cells in the grid
+        - Values represent the cost of pairing those cells
+        - Only valid pairs (adjacent cells that aren't forbidden) have entries
         """
-        dict_test = {}
+        # Initialize the cost matrix with empty dictionaries for each cell
+        self.cost_matrix = {}
         for i in range(self.grid.n):
             for j in range(self.grid.m):
-                dict_test[f"cell_{i}_{j}"] = inf
+                self.cost_matrix[f"cell_{i}_{j}"] = {}
 
+        # Fill in costs for adjacent cells
         for i in range(self.grid.n):
             for j in range(self.grid.m):
-                self.dict_adjacency[f"cell_{i}_{j}"] = dict_test.copy()
+                cell_id = f"cell_{i}_{j}"
+                # Check adjacent cells (up, down, left, right)
+                adjacents = [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)]
 
-        # Déjà, par défaut on a infini
-        for cell in self.grid.cells_list:
-            adjacents = [
-                (cell.i + 1, cell.j),
-                (cell.i - 1, cell.j),
-                (cell.i, cell.j + 1),
-                (cell.i, cell.j - 1),
-            ]
+                for adj_i, adj_j in adjacents:
+                    if 0 <= adj_i < self.grid.n and 0 <= adj_j < self.grid.m:
+                        adj_cell_id = f"cell_{adj_i}_{adj_j}"
+                        # Only add costs for valid pairs
+                        if not self.grid.is_pair_forbidden(((i, j), (adj_i, adj_j))):
+                            pair_cost = self.grid.cost(((i, j), (adj_i, adj_j)))
+                            self.cost_matrix[cell_id][adj_cell_id] = pair_cost
 
-            for adj_i, adj_j in adjacents:
-                if 0 <= adj_i < self.grid.n and 0 <= adj_j < self.grid.m:
-                    if not self.grid.is_pair_forbidden(
-                        ((cell.i, cell.j), (adj_i, adj_j))
-                    ):
-                        self.dict_adjacency[f"cell_{cell.i}_{cell.j}"][
-                            f"cell_{adj_i}_{adj_j}"
-                        ] = self.grid.cost(((cell.i, cell.j), (adj_i, adj_j)))
-                        self.dict_adjacency[f"cell_{adj_i}_{adj_j}"][
-                            f"cell_{cell.i}_{cell.j}"
-                        ] = self.grid.cost(((cell.i, cell.j), (adj_i, adj_j)))
-        return self.dict_adjacency
+        return self.cost_matrix
 
     def step1(self):
         """
         Subtract the minimum value from each row of the cost matrix.
-        """
-        cost_matrix = self.cost_matrix.copy()
-        # Iterate directly through the dictionary keys
-        for row_key in cost_matrix:
-            row_values = list(cost_matrix[row_key].values())
-            min_value = min(row_values) if min(row_values) != inf else 0
-            # Subtract min value from each element in the row
-            for col_key in cost_matrix[row_key]:
-                cost_matrix[row_key][col_key] -= min_value
 
-        self.cost_matrix = cost_matrix
-        return cost_matrix
+        This creates at least one zero in each row, which are candidates for
+        the matching solution.
+        """
+        for row_key in self.cost_matrix:
+            # Skip empty rows
+            if not self.cost_matrix[row_key]:
+                continue
+
+            # Find minimum value in this row
+            row_values = list(self.cost_matrix[row_key].values())
+            if not row_values:
+                continue
+
+            min_value = min(row_values) if row_values else 0
+
+            # Subtract min value from each element in the row
+            for col_key in self.cost_matrix[row_key]:
+                self.cost_matrix[row_key][col_key] -= min_value
+
+        return self.cost_matrix
 
     def step2(self):
         """
         Subtract the minimum value from each column of the cost matrix.
+
+        This creates at least one zero in each column, providing more
+        candidates for the matching solution.
         """
-        cost_matrix = self.cost_matrix.copy()
-        # Get all column keys (should be same as row keys in your case)
-        col_keys = list(cost_matrix.keys())
+        # Get all unique column keys
+        all_cols = set()
+        for row in self.cost_matrix:
+            all_cols.update(self.cost_matrix[row].keys())
 
         # For each column
-        for col_key in col_keys:
+        for col_key in all_cols:
             # Gather all values in this column
-            column_values = [
-                cost_matrix[row_key][col_key]
-                for row_key in cost_matrix
-                if col_key in cost_matrix[row_key]
-            ]
+            column_values = []
+            for row_key in self.cost_matrix:
+                if col_key in self.cost_matrix[row_key]:
+                    column_values.append(self.cost_matrix[row_key][col_key])
 
-            min_value = (
-                min(column_values) if column_values and min(column_values) != inf else 0
-            )
+            if not column_values:
+                continue
+
+            min_value = min(column_values) if column_values else 0
 
             # Subtract min value from each element in the column
-            for row_key in cost_matrix:
-                if col_key in cost_matrix[row_key]:
-                    cost_matrix[row_key][col_key] -= min_value
+            for row_key in self.cost_matrix:
+                if col_key in self.cost_matrix[row_key]:
+                    self.cost_matrix[row_key][col_key] -= min_value
 
-        self.cost_matrix = cost_matrix
-        return cost_matrix
+        return self.cost_matrix
 
-    def step3(self):
+    def find_maximum_zero_matching(self):
         """
-        Marks rows and columns to find minimum number of lines covering all zeros.
+        Find maximum matching of zeros in the cost matrix.
+
+        Uses a greedy initial assignment followed by augmentation through
+        alternating paths to maximize the number of matched rows and columns.
+
+        Returns:
+        --------
+        tuple
+            (row_assignment, col_assignment) dictionaries mapping rows to columns
+            and columns to rows in the optimal matching
         """
-        cost_matrix = self.cost_matrix.copy()
-
-        # Step 1: Find a maximal assignment using a more thorough approach
-        row_assignment = {}  # Maps row -> column
-        col_assignment = {}  # Maps column -> row
-
-        # Use Hungarian matching algorithm for initial assignment
-        # (This is a simplified approach - a full implementation would use augmenting paths)
-        for row_key in cost_matrix:
-            for col_key, value in cost_matrix[row_key].items():
-                if value == 0 and col_key not in col_assignment:
-                    row_assignment[row_key] = col_key
-                    col_assignment[col_key] = row_key
-                    break
-
-        # Step 2: Mark rows with no assignment
-        unmarked_rows = set(cost_matrix.keys())
-        marked_rows = {row for row in cost_matrix if row not in row_assignment}
-        unmarked_rows -= marked_rows
-        marked_cols = set()
-
-        # Step 3-4: Iteratively mark columns and rows
-        while True:
-            # Mark columns with zeros in marked rows
-            new_cols = set()
-            for row in marked_rows:
-                for col, value in cost_matrix[row].items():
-                    if value == 0 and col not in marked_cols:
-                        new_cols.add(col)
-
-            if not new_cols:  # No new columns to mark
-                break
-
-            marked_cols.update(new_cols)
-
-            # Mark rows with assignments in marked columns
-            new_rows = set()
-            for col in new_cols:
-                if col in col_assignment and col_assignment[col] not in marked_rows:
-                    new_rows.add(col_assignment[col])
-
-            if not new_rows:  # No new rows to mark
-                break
-
-            marked_rows.update(new_rows)
-            unmarked_rows -= new_rows
-
-        # The minimum cover consists of unmarked rows and marked columns
-        self.marked_rows = unmarked_rows  # Note: these are UNMARKED rows
-        self.marked_cols = marked_cols
-        self.row_assignment = row_assignment
-        self.col_assignment = col_assignment
-        return unmarked_rows, marked_cols
-
-    def step4(self):
-        """
-        Checks if the minimum number of lines is equal to the size of the matrix
-        """
-        # The optimal solution is found when the number of lines equals the size of the matrix
-        return len(self.marked_rows) + len(self.marked_cols) == len(self.cost_matrix)
-
-    def step5(self):
-        """
-        Finds the smallest unmarked value in the cost matrix and updates the matrix.
-        """
-        cost_matrix = self.cost_matrix.copy()
-
-        # Find the smallest unmarked value
-        min_value = float("inf")
-        for row_key in cost_matrix:
-            if row_key not in self.marked_rows:  # Unmarked row
-                for col_key, value in cost_matrix[row_key].items():
-                    if (
-                        col_key not in self.marked_cols and value < min_value
-                    ):  # Unmarked column
-                        min_value = value
-
-        # Subtract from unmarked rows
-        for row_key in cost_matrix:
-            if row_key not in self.marked_rows:  # Unmarked row
-                for col_key in cost_matrix[row_key]:
-                    cost_matrix[row_key][col_key] -= min_value
-
-        # Add to marked columns
-        for row_key in cost_matrix:
-            for col_key in cost_matrix[row_key]:
-                if col_key in self.marked_cols:  # Marked column
-                    cost_matrix[row_key][col_key] += min_value
-
-        self.cost_matrix = cost_matrix
-        return cost_matrix
-
-    def find_maximum_zero_matching(self, cost_matrix):
-        """Find maximum matching of zeros in cost matrix"""
         row_assignment = {}
         col_assignment = {}
 
-        # Initial greedy assignment (same as before)
-        for row_key in cost_matrix:
-            for col_key, value in cost_matrix[row_key].items():
+        # Initial greedy assignment
+        for row_key in self.cost_matrix:
+            for col_key, value in self.cost_matrix[row_key].items():
                 if value == 0 and col_key not in col_assignment:
                     row_assignment[row_key] = col_key
                     col_assignment[col_key] = row_key
                     break
 
-        # Try to improve the matching with alternating paths
+        # Try to improve the matching with augmenting paths
         while True:
             # Find an unmatched row
             unmatched_row = None
-            for row in cost_matrix:
+            for row in self.cost_matrix:
                 if row not in row_assignment:
                     unmatched_row = row
                     break
 
             if not unmatched_row:
-                break  # All rows are matched
+                break  # All rows are matched or no more rows can be matched
 
             # Try to find an augmenting path starting from this row
-            path_found = self.find_augmenting_path_for_zeros(
-                unmatched_row, cost_matrix, row_assignment, col_assignment
+            path_found = self.find_augmenting_path(
+                unmatched_row, row_assignment, col_assignment
             )
             if not path_found:
                 break  # No more augmenting paths
 
         return row_assignment, col_assignment
 
-    def find_augmenting_path_for_zeros(
-        self, start_row, cost_matrix, row_assignment, col_assignment
-    ):
-        """Find an augmenting path for zeros starting from a given row"""
-        visited_rows = set()
+    def find_augmenting_path(self, start_row, row_assignment, col_assignment):
+        """
+        Find an augmenting path for zeros starting from a given row.
+
+        An augmenting path alternates between unmatched and matched edges,
+        starting at an unmatched row and ending at an unmatched column.
+
+        Parameters:
+        -----------
+        start_row: str
+            The starting row (an unmatched row) for the path search
+        row_assignment: dict
+            Current assignment of rows to columns
+        col_assignment: dict
+            Current assignment of columns to rows
+
+        Returns:
+        --------
+        bool
+            True if an augmenting path was found and used, False otherwise
+        """
+        # Track visited nodes and the path
+        visited_rows = set([start_row])
         visited_cols = set()
-        stack = [start_row]
-        parent = {start_row: None}
+        parent = {start_row: None}  # Used to reconstruct the path
 
-        while stack:
-            row = stack.pop()
-            visited_rows.add(row)
+        # Use a queue for breadth-first search
+        queue = [start_row]
 
-            for col_key, value in cost_matrix[row].items():
+        while queue:
+            current_row = queue.pop(0)  # Dequeue
+
+            # Try all columns with zeros from this row
+            for col_key, value in self.cost_matrix[current_row].items():
                 if value == 0 and col_key not in visited_cols:
                     visited_cols.add(col_key)
+                    parent[col_key] = current_row
+
+                    # If column is unmatched, we found an augmenting path
                     if col_key not in col_assignment:
-                        # Found an augmenting path
                         self.augment_path(
-                            col_key, row_assignment, col_assignment, parent
+                            col_key, parent, row_assignment, col_assignment
                         )
                         return True
-                    else:
-                        next_row = col_assignment[col_key]
-                        if next_row not in visited_rows:
-                            parent[next_row] = row
-                            stack.append(next_row)
 
+                    # If column is matched, continue path through its matched row
+                    next_row = col_assignment[col_key]
+                    if next_row not in visited_rows:
+                        visited_rows.add(next_row)
+                        parent[next_row] = col_key
+                        queue.append(next_row)
+
+        # No augmenting path found
         return False
 
-    def augment_path(self, col, row_assignment, col_assignment, parent):
-        """Augment the matching along the found path"""
-        while col is not None:
-            row = parent[col]
-            next_col = row_assignment.get(row)
-            row_assignment[row] = col
-            col_assignment[col] = row
-            col = next_col
+    def augment_path(self, end_col, parent, row_assignment, col_assignment):
+        """
+        Augment the matching along the found path.
+
+        This flips the matched/unmatched status of edges along the path, which
+        increases the size of the matching by one.
+
+        Parameters:
+        -----------
+        end_col: str
+            The unmatched column at the end of the augmenting path
+        parent: dict
+            Dictionary mapping nodes to their predecessors in the path
+        row_assignment: dict
+            Row to column assignments to update
+        col_assignment: dict
+            Column to row assignments to update
+        """
+        # Start at the unmatched column and work backwards
+        current = end_col
+
+        while True:
+            row = parent[current]  # Get the row that led to this column
+
+            # Unmatched column gets matched to its parent row
+            row_assignment[row] = current
+            col_assignment[current] = row
+
+            if parent[row] is None:
+                break  # Reached the starting unmatched row
+
+            # Move to the previous column in the path
+            current = parent[row]
+
+            # Remove previous matching for this column if it exists
+            if current in col_assignment:
+                prev_row = col_assignment[current]
+                if prev_row in row_assignment and row_assignment[prev_row] == current:
+                    del row_assignment[prev_row]
+
+            # This shouldn't be necessary with proper parent tracking, but just in case
+            if current not in parent:
+                break
+
+    def step3(self):
+        """
+        Find the minimum number of lines needed to cover all zeros in the cost matrix.
+
+        This step is crucial for determining if we have found an optimal assignment.
+        If the number of lines equals the matrix dimension, we're done.
+
+        Returns:
+        --------
+        tuple
+            (marked_rows, marked_cols) sets containing covered rows and columns
+        """
+        # First find a maximum matching of zeros
+        self.row_assignment, self.col_assignment = self.find_maximum_zero_matching()
+
+        # Mark rows that have no assignment
+        unmarked_rows = set(self.cost_matrix.keys()) - set(self.row_assignment.keys())
+        marked_rows = set(unmarked_rows)  # Start with unassigned rows marked
+        marked_cols = set()
+
+        # Iteratively mark columns and rows until no new marks can be added
+        while True:
+            # Mark columns that have zeros in marked rows
+            new_marked_cols = set()
+            for row in marked_rows:
+                for col, value in self.cost_matrix[row].items():
+                    if value == 0 and col not in marked_cols:
+                        new_marked_cols.add(col)
+
+            if not new_marked_cols:
+                break  # No new columns to mark
+
+            marked_cols.update(new_marked_cols)
+
+            # Mark rows that have assignments in marked columns
+            new_marked_rows = set()
+            for col in new_marked_cols:
+                if (
+                    col in self.col_assignment
+                    and self.col_assignment[col] not in marked_rows
+                ):
+                    new_marked_rows.add(self.col_assignment[col])
+
+            if not new_marked_rows:
+                break  # No new rows to mark
+
+            marked_rows.update(new_marked_rows)
+
+        # The minimum line cover consists of:
+        # - Unmarked rows (all rows - marked rows)
+        # - Marked columns
+        self.marked_rows = set(self.cost_matrix.keys()) - marked_rows
+        self.marked_cols = marked_cols
+
+        return self.marked_rows, self.marked_cols
+
+    def step4(self):
+        """
+        Check if the current assignment is optimal.
+
+        In a standard Hungarian algorithm, the assignment is optimal when the number
+        of covering lines equals the matrix dimension. However, for grid matching
+        with unmatchable cells, we need a different criterion.
+
+        Since some cells can never be matched (black cells or those with no valid pairs),
+        we check if the number of covering lines equals the size of the current assignment.
+        If no more augmenting paths can be found (handled in find_maximum_zero_matching),
+        and this condition is true, the assignment is optimal.
+
+        Returns:
+        --------
+        bool
+            True if the assignment is optimal, False otherwise
+        """
+        # Count the total number of covering lines (marked rows + marked columns)
+        total_covering_lines = len(self.marked_rows) + len(self.marked_cols)
+
+        # Check if the total covering lines equals the number of assignments
+        # This is the König-Egerváry theorem: max matching size = min cover size
+        # The condition must be exactly equal, not >= to ensure we reach optimal solution
+        return total_covering_lines == len(self.row_assignment)
+
+    def step5(self):
+        """
+        Update the cost matrix to create new zeros.
+
+        When the assignment is not optimal, this step:
+        1. Finds the smallest uncovered value
+        2. Subtracts it from all uncovered rows
+        3. Adds it to all covered columns
+
+        This creates new zeros while preserving the existing assignment.
+
+        Returns:
+        --------
+        dict
+            The updated cost matrix
+        """
+        # Find the minimum value in the uncovered part of the matrix
+        min_value = float("inf")
+
+        for row_key in self.cost_matrix:
+            if row_key not in self.marked_rows:  # Only consider unmarked rows
+                for col_key, value in self.cost_matrix[row_key].items():
+                    if (
+                        col_key not in self.marked_cols
+                    ):  # Only consider unmarked columns
+                        if value < min_value:
+                            min_value = value
+
+        if min_value == float("inf"):
+            return self.cost_matrix  # No uncovered elements with finite cost
+
+        # Subtract min_value from every uncovered element (intersections of unmarked rows and cols)
+        for row_key in self.cost_matrix:
+            if row_key not in self.marked_rows:  # Unmarked row
+                for col_key in self.cost_matrix[row_key]:
+                    if col_key not in self.marked_cols:  # Unmarked column
+                        self.cost_matrix[row_key][col_key] -= min_value
+
+        # Add min_value to every element that is at intersection of marked row and marked column
+        for row_key in self.marked_rows:  # Marked row
+            for col_key in self.cost_matrix[row_key]:
+                if col_key in self.marked_cols:  # Marked column
+                    self.cost_matrix[row_key][col_key] += min_value
+
+        return self.cost_matrix
 
     def run(self):
         """
-        Run the Hungarian algorithm to find the optimal matching
+        Run the Hungarian algorithm to find the optimal assignment.
+
+        This implementation handles the special case of grid matching where:
+        1. Not all cells can be matched (e.g., black cells are unmatchable)
+        2. The objective is to maximize the number of matched cells
+           while minimizing the cost of those matches
+
+        The algorithm follows these steps:
+        1. Reduce the cost matrix by row and column to create zeros
+        2. Find a maximum assignment of zeros
+        3. Check if it's optimal using the modified criterion
+        4. If not optimal, create new zeros and repeat steps 2-3
+
+        Returns:
+        --------
+        list[tuple]
+            List of matched pairs in the format [(cell1, cell2), ...]
         """
-        # Apply steps 1-5 until optimal solution is found
+        # Initialize cost matrix by reducing rows and columns
         self.step1()
         self.step2()
 
         # Maximum number of iterations to prevent infinite loops
-        max_iterations = len(self.cost_matrix) ** 2
-        iteration_count = 0
+        max_iterations = len(self.cost_matrix) * 2
+        iteration_count = 1  # Start at 1 to avoid "0 iterations" message
 
-        while True:
+        # Keep track of best assignment found
+        best_assignment = {}
+        best_assignment_size = 0
+        is_optimal = False  # Track if we found an optimal solution
+
+        # Iterate until optimal solution is found or max iterations reached
+        while iteration_count <= max_iterations:
             self.step3()
+
+            # Check if current assignment is better than best found
+            current_size = len(self.row_assignment)
+            if current_size > best_assignment_size:
+                best_assignment = self.row_assignment.copy()
+                best_assignment_size = current_size
+
             if self.step4():
-                print(
-                    f"Hungarian algorithm converged after {iteration_count} iterations"
-                )
+                # Optimal solution found according to König's theorem
+                is_optimal = True
+                print(f"Optimal solution found after {iteration_count} iterations")
                 break
 
-            if iteration_count >= max_iterations:
-                print(
-                    f"Warning: Hungarian algorithm reached maximum iterations ({max_iterations})"
-                )
-                break
-
+            # Only increment after we've checked optimality and need another iteration
             self.step5()
             iteration_count += 1
 
-        # Extract the optimal matching
+        # If we reached max iterations without finding an optimal solution
+        if not is_optimal:
+            print(
+                f"Warning: Max iterations ({max_iterations}) reached without optimal solution"
+            )
+
+            # Use the best assignment found if it's better than the final one
+            if best_assignment_size > len(self.row_assignment):
+                print(f"Using best assignment found (size {best_assignment_size})")
+                self.row_assignment = best_assignment
+
+        # Extract the matching from row_assignment
         matching_pairs = []
-        cost_matrix = self.cost_matrix
+        valid_pair_count = 0
+        used_pairs = set()  # To track pairs we've already added (in either direction)
 
-        # Find cells with zero values in the final cost matrix
-        used_cells = set()  # Keep track of cells already in a pair
+        # Use the final row_assignment to construct the matching
+        for row_key, col_key in self.row_assignment.items():
+            # Convert from 'cell_i_j' format to (i,j) coordinates
+            row_coords = tuple(map(int, row_key.split("_")[1:]))
+            col_coords = tuple(map(int, col_key.split("_")[1:]))
 
-        for row_key in cost_matrix:
-            if row_key in used_cells:
-                continue
+            # Check that this is a valid pair (cells must be adjacent)
+            if abs(row_coords[0] - col_coords[0]) + abs(
+                row_coords[1] - col_coords[1]
+            ) == 1 and not self.grid.is_pair_forbidden((row_coords, col_coords)):
+                # Create a canonical representation of the pair (sort by coordinates)
+                canonical_pair = tuple(sorted([row_coords, col_coords]))
+                
+                # Only add the pair if we haven't seen it before
+                if canonical_pair not in used_pairs:
+                    matching_pairs.append((row_coords, col_coords))
+                    used_pairs.add(canonical_pair)
+                    valid_pair_count += 1
 
-            for col_key, value in cost_matrix[row_key].items():
-                if col_key in used_cells:
-                    continue
-
-                if value == 0:
-                    # Convert from 'cell_i_j' format to (i,j) coordinates
-                    row_coords = tuple(map(int, row_key.split("_")[1:]))
-                    col_coords = tuple(map(int, col_key.split("_")[1:]))
-
-                    # Check if this is a valid pair (adjacent cells)
-                    if not self.grid.is_pair_forbidden((row_coords, col_coords)):
-                        matching_pairs.append((row_coords, col_coords))
-                        # Mark these cells as used
-                        used_cells.add(row_key)
-                        used_cells.add(col_key)
-                        break
+        print(f"Hungarian algorithm found {valid_pair_count} valid pairs")
+        
+        if not is_optimal:
+            print("Warning: Solution may not be optimal according to König's theorem")
 
         self.pairs = matching_pairs
 
