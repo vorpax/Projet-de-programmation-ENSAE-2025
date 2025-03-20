@@ -60,6 +60,7 @@ class Solver:
             self.grid.get_coordinate_value(cell[0], cell[1])
             for cell in self.all_cells
             if cell not in self.cells
+            and self.grid.get_coordinate_color(cell[0], cell[1]) != "k"
         )
         chosen_pairs_cost = sum(self.grid.cost(pair) for pair in self.pairs)
         return remaining_cells_cost + chosen_pairs_cost
@@ -470,51 +471,55 @@ class SolverHungarian(Solver):
         return self.dict_adjacency
 
     def step1(self):
+        """
+        Subtract the minimum value from each row of the cost matrix.
+        """
         cost_matrix = self.cost_matrix.copy()
-        for i in range(self.grid.n):
-            for j in range(self.grid.m):
-                sorted_row = sorted(
-                    cost_matrix[f"cell_{i}_{j}"].items(), key=lambda x: x[1]
-                )
-                min_value = sorted_row[0][1] if sorted_row[0][1] != inf else 0
-                for key in cost_matrix[f"cell_{i}_{j}"]:
-                    cost_matrix[f"cell_{i}_{j}"][key] -= min_value
+        # Iterate directly through the dictionary keys
+        for row_key in cost_matrix:
+            row_values = list(cost_matrix[row_key].values())
+            min_value = min(row_values) if min(row_values) != inf else 0
+            # Subtract min value from each element in the row
+            for col_key in cost_matrix[row_key]:
+                cost_matrix[row_key][col_key] -= min_value
+
         self.cost_matrix = cost_matrix
         return cost_matrix
 
     def step2(self):
+        """
+        Subtract the minimum value from each column of the cost matrix.
+        """
         cost_matrix = self.cost_matrix.copy()
-        for i in range(self.grid.n):
-            for j in range(self.grid.m):
-                column = [
-                    cost_matrix[f"cell_{i}_{j}"][f"cell_{k}_{m}"]
-                    for k in range(self.grid.n)
-                    for m in range(self.grid.m)
-                ]
+        # Get all column keys (should be same as row keys in your case)
+        col_keys = list(cost_matrix.keys())
 
-                min_value = min(column) if min(column) != inf else 0
-                for k in range(self.grid.n):
-                    for m in range(self.grid.m):
-                        cost_matrix[f"cell_{k}_{m}"][f"cell_{i}_{j}"] -= min_value
+        # For each column
+        for col_key in col_keys:
+            # Gather all values in this column
+            column_values = [
+                cost_matrix[row_key][col_key]
+                for row_key in cost_matrix
+                if col_key in cost_matrix[row_key]
+            ]
 
-        print(cost_matrix)
+            min_value = (
+                min(column_values) if column_values and min(column_values) != inf else 0
+            )
+
+            # Subtract min value from each element in the column
+            for row_key in cost_matrix:
+                if col_key in cost_matrix[row_key]:
+                    cost_matrix[row_key][col_key] -= min_value
+
         self.cost_matrix = cost_matrix
         return cost_matrix
 
     def step3(self):
         """
         Marks the rows and columns of the cost matrix with the minimum number of lines.
-
-        This step finds the minimum number of rows and columns that cover all zeros
-        in the cost matrix, which is a key part of the Hungarian algorithm.
-
-        Returns:
-        --------
-        tuple
-            (marked_rows, marked_cols) - Sets of marked row and column indices
         """
         cost_matrix = self.cost_matrix.copy()
-        n_rows = self.grid.n * self.grid.m
 
         # Step 1: Find a maximal matching (assignment of zeros)
         assignment = {}  # Maps row to column
@@ -525,16 +530,15 @@ class SolverHungarian(Solver):
                     break
 
         # Step 2: Mark rows with no assignments
-        marked_rows = set()
-        marked_cols = set()
-
         unmarked_rows = {
             row_key for row_key in cost_matrix if row_key not in assignment
         }
+        marked_rows = set()
+        marked_cols = set()
 
         # Step 3-5: Iteratively mark columns and rows
         while True:
-            # Mark columns with zeros in marked rows
+            # Mark columns with zeros in unmarked rows
             new_cols = set()
             for row in unmarked_rows:
                 for col_key, value in cost_matrix[row].items():
@@ -555,11 +559,10 @@ class SolverHungarian(Solver):
             if not new_rows:  # No new rows
                 break
 
-            unmarked_rows.update(new_rows)
+            marked_rows.update(new_rows)
+            unmarked_rows = unmarked_rows - marked_rows
 
         # The minimum cover consists of unmarked rows and marked columns
-        marked_rows = {row_key for row_key in cost_matrix} - unmarked_rows
-
         self.marked_rows = marked_rows
         self.marked_cols = marked_cols
 
@@ -567,24 +570,14 @@ class SolverHungarian(Solver):
 
     def step4(self):
         """
-        Checks if there are n drawn lines (ie the the total number of marked rows and marked columns is n)
+        Checks if the minimum number of lines is equal to the size of the matrix
         """
-        return len(self.marked_rows) + len(self.marked_cols) == self.grid.n
+        # The optimal solution is found when the number of lines equals the size of the matrix
+        return len(self.marked_rows) + len(self.marked_cols) == len(self.cost_matrix)
 
     def step5(self):
         """
         Finds the smallest unmarked value in the cost matrix and updates the matrix.
-
-        This step:
-        1. Finds the minimum value that is not covered by any line
-        2. Subtracts this value from all unmarked rows
-        3. Adds this value to all marked columns
-        4. Returns the updated cost matrix
-
-        Returns:
-        --------
-        dict
-            The updated cost matrix
         """
         cost_matrix = self.cost_matrix.copy()
 
@@ -612,3 +605,72 @@ class SolverHungarian(Solver):
 
         self.cost_matrix = cost_matrix
         return cost_matrix
+
+    def run(self):
+        """
+        Run the Hungarian algorithm to find the optimal matching
+        """
+        # Apply steps 1-5 until optimal solution is found
+        self.step1()
+        self.step2()
+
+        # Maximum number of iterations to prevent infinite loops
+        # Theoretically, the Hungarian algorithm has O(n³) complexity,
+        # so n² iterations should be more than enough
+        max_iterations = len(self.cost_matrix) ** 2
+        iteration_count = 0
+
+        while True:
+            self.step3()
+            if self.step4():
+                print(
+                    f"Hungarian algorithm converged after {iteration_count} iterations"
+                )
+                break
+
+            if iteration_count >= max_iterations:
+                print(
+                    f"Warning: Hungarian algorithm reached maximum iterations ({max_iterations})"
+                )
+                break
+
+            self.step5()
+            iteration_count += 1
+
+        # Extract the optimal matching
+        matching_pairs = []
+        cost_matrix = self.cost_matrix
+
+        # Find cells with zero values in the final cost matrix
+        used_cells = set()  # Keep track of cells already in a pair
+
+        for row_key in cost_matrix:
+            if row_key in used_cells:
+                continue
+
+            for col_key, value in cost_matrix[row_key].items():
+                if col_key in used_cells:
+                    continue
+
+                if value == 0:
+                    # Convert from 'cell_i_j' format to (i,j) coordinates
+                    row_coords = tuple(map(int, row_key.split("_")[1:]))
+                    col_coords = tuple(map(int, col_key.split("_")[1:]))
+
+                    # Check if this is a valid pair (adjacent cells)
+                    if not self.grid.is_pair_forbidden((row_coords, col_coords)):
+                        matching_pairs.append((row_coords, col_coords))
+                        # Mark these cells as used
+                        used_cells.add(row_key)
+                        used_cells.add(col_key)
+                        break
+
+        self.pairs = matching_pairs
+
+        # Update the cells list
+        self.cells = []
+        for pair in self.pairs:
+            self.cells.append(pair[0])
+            self.cells.append(pair[1])
+
+        return matching_pairs
