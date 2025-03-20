@@ -11,7 +11,7 @@ from solver import SolverHungarian
 
 DATA_PATH = "./input/"
 
-FILE_NAME = DATA_PATH + "grid01.in"
+FILE_NAME = DATA_PATH + "grid14.in"
 grid = Grid.grid_from_file(FILE_NAME, read_values=True)
 
 # grid.plot()
@@ -41,31 +41,11 @@ grid.cell_init()
 GrandPereExplorer = SolverHungarian(grid)
 # GrandPereExplorer.adjacency_dict_init()
 
-GrandPereExplorer.cost_matrix_init()
+
+GrandPereExplorer.run()
+print(GrandPereExplorer.score())
+
 print("j'habite une maison citrouille")
-
-
-def la_hongrie():
-    """
-    Runs the Hungarian algorithm to find the optimal matching.
-    """
-
-    cost_matrix = GrandPereExplorer.hungarian_algorithm()
-    print(cost_matrix)
-    print("jroule que en CR jpeux pas trahier Honda")
-
-
-def afficher_matrice():
-    """
-    Displays the adjacency matrix of the grid, weighted by the cost.
-    """
-
-    listeazeubi = GrandPereExplorer.dict_adjacency.values()
-
-    for i in listeazeubi:
-        print(list(i.values()))
-
-
 # afficher_matrice()
 
 # la_hongrie()
