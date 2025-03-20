@@ -407,25 +407,45 @@ class SolverHungarian(Solver):
         - Rows correspond to cells in the grid
         - Columns also correspond to cells in the grid
         - Values represent the cost of pairing those cells
-        - Only valid pairs (adjacent cells that aren't forbidden) have entries
+        - Valid pairs (adjacent cells that aren't forbidden) have actual costs
+        - Invalid pairs or forbidden pairs have infinity cost
         """
-        # Initialize the cost matrix with empty dictionaries for each cell
+        # Initialize the cost matrix with dictionaries for each cell
         self.cost_matrix = {}
-        for i in range(self.grid.n):
-            for j in range(self.grid.m):
-                self.cost_matrix[f"cell_{i}_{j}"] = {}
 
-        # Fill in costs for adjacent cells
+        # Get all possible cell IDs
+        all_cell_ids = []
         for i in range(self.grid.n):
             for j in range(self.grid.m):
+                all_cell_ids.append(f"cell_{i}_{j}")
+
+        # Initialize all entries in the cost matrix with infinity
+        for i in range(self.grid.n):
+            for j in range(self.grid.m):
+                cell_id = f"cell_{i}_{j}"
+                self.cost_matrix[cell_id] = {
+                    other_cell: float("inf") for other_cell in all_cell_ids
+                }
+
+        # Fill in actual costs for valid adjacent cells
+        for i in range(self.grid.n):
+            for j in range(self.grid.m):
+                # Skip black cells - they can't be paired
+                if self.grid.get_coordinate_color(i, j) == "k":
+                    continue
+
                 cell_id = f"cell_{i}_{j}"
                 # Check adjacent cells (up, down, left, right)
                 adjacents = [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)]
 
                 for adj_i, adj_j in adjacents:
                     if 0 <= adj_i < self.grid.n and 0 <= adj_j < self.grid.m:
+                        # Skip adjacent black cells - they can't be paired either
+                        if self.grid.get_coordinate_color(adj_i, adj_j) == "k":
+                            continue
+
                         adj_cell_id = f"cell_{adj_i}_{adj_j}"
-                        # Only add costs for valid pairs
+                        # Only add finite costs for valid pairs
                         if not self.grid.is_pair_forbidden(((i, j), (adj_i, adj_j))):
                             pair_cost = self.grid.cost(((i, j), (adj_i, adj_j)))
                             self.cost_matrix[cell_id][adj_cell_id] = pair_cost
@@ -440,20 +460,22 @@ class SolverHungarian(Solver):
         the matching solution.
         """
         for row_key in self.cost_matrix:
-            # Skip empty rows
-            if not self.cost_matrix[row_key]:
-                continue
+            # Get all finite values in this row (ignoring infinity)
+            row_values = [
+                v for v in self.cost_matrix[row_key].values() if v != float("inf")
+            ]
 
-            # Find minimum value in this row
-            row_values = list(self.cost_matrix[row_key].values())
+            # If there are no finite values, skip this row
             if not row_values:
                 continue
 
-            min_value = min(row_values) if row_values else 0
+            # Find minimum finite value in this row
+            min_value = min(row_values)
 
-            # Subtract min value from each element in the row
+            # Subtract min value from each finite element in the row
             for col_key in self.cost_matrix[row_key]:
-                self.cost_matrix[row_key][col_key] -= min_value
+                if self.cost_matrix[row_key][col_key] != float("inf"):
+                    self.cost_matrix[row_key][col_key] -= min_value
 
         return self.cost_matrix
 
@@ -471,20 +493,26 @@ class SolverHungarian(Solver):
 
         # For each column
         for col_key in all_cols:
-            # Gather all values in this column
+            # Gather all finite values in this column (ignoring infinity)
             column_values = []
             for row_key in self.cost_matrix:
-                if col_key in self.cost_matrix[row_key]:
+                if col_key in self.cost_matrix[row_key] and self.cost_matrix[row_key][
+                    col_key
+                ] != float("inf"):
                     column_values.append(self.cost_matrix[row_key][col_key])
 
+            # If there are no finite values in this column, skip it
             if not column_values:
                 continue
 
-            min_value = min(column_values) if column_values else 0
+            # Find minimum finite value in this column
+            min_value = min(column_values)
 
-            # Subtract min value from each element in the column
+            # Subtract min value from each finite element in the column
             for row_key in self.cost_matrix:
-                if col_key in self.cost_matrix[row_key]:
+                if col_key in self.cost_matrix[row_key] and self.cost_matrix[row_key][
+                    col_key
+                ] != float("inf"):
                     self.cost_matrix[row_key][col_key] -= min_value
 
         return self.cost_matrix
@@ -505,7 +533,7 @@ class SolverHungarian(Solver):
         row_assignment = {}
         col_assignment = {}
 
-        # Initial greedy assignment
+        # Initial greedy assignment - only consider zero values (not infinity)
         for row_key in self.cost_matrix:
             for col_key, value in self.cost_matrix[row_key].items():
                 if value == 0 and col_key not in col_assignment:
@@ -566,9 +594,10 @@ class SolverHungarian(Solver):
         while queue:
             current_row = queue.pop(0)  # Dequeue
 
-            # Try all columns with zeros from this row
+            # Try all columns with zeros from this row (excluding infinite values)
             for col_key, value in self.cost_matrix[current_row].items():
-                if value == 0 and col_key not in visited_cols:
+                # Only consider zeros (not infinity) for the augmenting path
+                if value == 0 and value != float("inf") and col_key not in visited_cols:
                     visited_cols.add(col_key)
                     parent[col_key] = current_row
 
@@ -702,6 +731,8 @@ class SolverHungarian(Solver):
         If no more augmenting paths can be found (handled in find_maximum_zero_matching),
         and this condition is true, the assignment is optimal.
 
+        For large grids, we add a minimum iteration requirement to prevent premature termination.
+
         Returns:
         --------
         bool
@@ -712,8 +743,11 @@ class SolverHungarian(Solver):
 
         # Check if the total covering lines equals the number of assignments
         # This is the König-Egerváry theorem: max matching size = min cover size
-        # The condition must be exactly equal, not >= to ensure we reach optimal solution
-        return total_covering_lines == len(self.row_assignment)
+        # The condition must be exactly equal to ensure we reach optimal solution
+        # We also check the iteration count to ensure we don't terminate too early
+        # We're comparing against the iteration_count attribute that is set in the run method
+        return (total_covering_lines == len(self.row_assignment) and 
+                getattr(self, 'iteration_count', 0) >= min(5, len(self.cost_matrix) // 10))
 
     def step5(self):
         """
@@ -731,32 +765,40 @@ class SolverHungarian(Solver):
         dict
             The updated cost matrix
         """
-        # Find the minimum value in the uncovered part of the matrix
+        # Find the minimum finite value in the uncovered part of the matrix
         min_value = float("inf")
 
         for row_key in self.cost_matrix:
             if row_key not in self.marked_rows:  # Only consider unmarked rows
                 for col_key, value in self.cost_matrix[row_key].items():
-                    if (
-                        col_key not in self.marked_cols
-                    ):  # Only consider unmarked columns
+                    if col_key not in self.marked_cols and value != float(
+                        "inf"
+                    ):  # Only consider unmarked columns with finite values
                         if value < min_value:
                             min_value = value
 
         if min_value == float("inf"):
             return self.cost_matrix  # No uncovered elements with finite cost
 
-        # Subtract min_value from every uncovered element (intersections of unmarked rows and cols)
+        # Subtract min_value from every uncovered element with finite cost
         for row_key in self.cost_matrix:
             if row_key not in self.marked_rows:  # Unmarked row
                 for col_key in self.cost_matrix[row_key]:
-                    if col_key not in self.marked_cols:  # Unmarked column
+                    if col_key not in self.marked_cols and self.cost_matrix[row_key][
+                        col_key
+                    ] != float(
+                        "inf"
+                    ):  # Unmarked column with finite cost
                         self.cost_matrix[row_key][col_key] -= min_value
 
-        # Add min_value to every element that is at intersection of marked row and marked column
+        # Add min_value to every element with finite cost at intersection of marked row and marked column
         for row_key in self.marked_rows:  # Marked row
             for col_key in self.cost_matrix[row_key]:
-                if col_key in self.marked_cols:  # Marked column
+                if col_key in self.marked_cols and self.cost_matrix[row_key][
+                    col_key
+                ] != float(
+                    "inf"
+                ):  # Marked column with finite cost
                     self.cost_matrix[row_key][col_key] += min_value
 
         return self.cost_matrix
@@ -787,15 +829,14 @@ class SolverHungarian(Solver):
 
         # Maximum number of iterations to prevent infinite loops
         max_iterations = len(self.cost_matrix) * 2
-        iteration_count = 1  # Start at 1 to avoid "0 iterations" message
+        self.iteration_count = 0
 
         # Keep track of best assignment found
         best_assignment = {}
         best_assignment_size = 0
-        is_optimal = False  # Track if we found an optimal solution
 
         # Iterate until optimal solution is found or max iterations reached
-        while iteration_count <= max_iterations:
+        while self.iteration_count < max_iterations:
             self.step3()
 
             # Check if current assignment is better than best found
@@ -805,17 +846,16 @@ class SolverHungarian(Solver):
                 best_assignment_size = current_size
 
             if self.step4():
-                # Optimal solution found according to König's theorem
-                is_optimal = True
-                print(f"Optimal solution found after {iteration_count} iterations")
+                # Optimal solution found according to our modified criterion
+                # We add 1 to iteration_count for display purposes to avoid showing "0 iterations"
+                print(f"Optimal solution found after {self.iteration_count + 1} iterations")
                 break
 
-            # Only increment after we've checked optimality and need another iteration
             self.step5()
-            iteration_count += 1
+            self.iteration_count += 1
 
         # If we reached max iterations without finding an optimal solution
-        if not is_optimal:
+        if self.iteration_count >= max_iterations:
             print(
                 f"Warning: Max iterations ({max_iterations}) reached without optimal solution"
             )
@@ -842,7 +882,7 @@ class SolverHungarian(Solver):
             ) == 1 and not self.grid.is_pair_forbidden((row_coords, col_coords)):
                 # Create a canonical representation of the pair (sort by coordinates)
                 canonical_pair = tuple(sorted([row_coords, col_coords]))
-                
+
                 # Only add the pair if we haven't seen it before
                 if canonical_pair not in used_pairs:
                     matching_pairs.append((row_coords, col_coords))
@@ -850,9 +890,6 @@ class SolverHungarian(Solver):
                     valid_pair_count += 1
 
         print(f"Hungarian algorithm found {valid_pair_count} valid pairs")
-        
-        if not is_optimal:
-            print("Warning: Solution may not be optimal according to König's theorem")
 
         self.pairs = matching_pairs
 
