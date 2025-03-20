@@ -8,6 +8,7 @@ Ford-Fulkerson algorithm for maximum bipartite matching).
 
 from math import inf
 from grid import Grid
+# https://en.wikipedia.org/wiki/Hungarian_algorithm
 
 
 class Solver:
@@ -380,7 +381,9 @@ class SolverHungarian(Solver):
         """
         super().__init__(grid)
         self.dict_adjacency = {}
-        self.cost_matrix = self.cost_matrix_init()
+        self.cost_matrix = self.adjacency_dict_init().copy()
+        self.marked_cols = set()
+        self.marked_rows = set()
 
     def cost_matrix_init(self):
         """
@@ -464,9 +467,10 @@ class SolverHungarian(Solver):
                         self.dict_adjacency[f"cell_{adj_i}_{adj_j}"][
                             f"cell_{cell.i}_{cell.j}"
                         ] = self.grid.cost(((cell.i, cell.j), (adj_i, adj_j)))
+        return self.dict_adjacency
 
-    def hungarian_algorithm(self):
-        cost_matrix = self.dict_adjacency.copy()
+    def step1(self):
+        cost_matrix = self.cost_matrix.copy()
         for i in range(self.grid.n):
             for j in range(self.grid.m):
                 sorted_row = sorted(
@@ -475,7 +479,11 @@ class SolverHungarian(Solver):
                 min_value = sorted_row[0][1] if sorted_row[0][1] != inf else 0
                 for key in cost_matrix[f"cell_{i}_{j}"]:
                     cost_matrix[f"cell_{i}_{j}"][key] -= min_value
+        self.cost_matrix = cost_matrix
+        return cost_matrix
 
+    def step2(self):
+        cost_matrix = self.cost_matrix.copy()
         for i in range(self.grid.n):
             for j in range(self.grid.m):
                 column = [
@@ -490,4 +498,117 @@ class SolverHungarian(Solver):
                         cost_matrix[f"cell_{k}_{m}"][f"cell_{i}_{j}"] -= min_value
 
         print(cost_matrix)
+        self.cost_matrix = cost_matrix
+        return cost_matrix
+
+    def step3(self):
+        """
+        Marks the rows and columns of the cost matrix with the minimum number of lines.
+
+        This step finds the minimum number of rows and columns that cover all zeros
+        in the cost matrix, which is a key part of the Hungarian algorithm.
+
+        Returns:
+        --------
+        tuple
+            (marked_rows, marked_cols) - Sets of marked row and column indices
+        """
+        cost_matrix = self.cost_matrix.copy()
+        n_rows = self.grid.n * self.grid.m
+
+        # Step 1: Find a maximal matching (assignment of zeros)
+        assignment = {}  # Maps row to column
+        for row_key in cost_matrix:
+            for col_key, value in cost_matrix[row_key].items():
+                if value == 0 and col_key not in assignment.values():
+                    assignment[row_key] = col_key
+                    break
+
+        # Step 2: Mark rows with no assignments
+        marked_rows = set()
+        marked_cols = set()
+
+        unmarked_rows = {
+            row_key for row_key in cost_matrix if row_key not in assignment
+        }
+
+        # Step 3-5: Iteratively mark columns and rows
+        while True:
+            # Mark columns with zeros in marked rows
+            new_cols = set()
+            for row in unmarked_rows:
+                for col_key, value in cost_matrix[row].items():
+                    if value == 0:
+                        new_cols.add(col_key)
+
+            if not new_cols - marked_cols:  # No new columns
+                break
+
+            marked_cols.update(new_cols)
+
+            # Mark rows with assignments in marked columns
+            new_rows = set()
+            for row_key, col_key in assignment.items():
+                if col_key in marked_cols and row_key not in marked_rows:
+                    new_rows.add(row_key)
+
+            if not new_rows:  # No new rows
+                break
+
+            unmarked_rows.update(new_rows)
+
+        # The minimum cover consists of unmarked rows and marked columns
+        marked_rows = {row_key for row_key in cost_matrix} - unmarked_rows
+
+        self.marked_rows = marked_rows
+        self.marked_cols = marked_cols
+
+        return marked_rows, marked_cols
+
+    def step4(self):
+        """
+        Checks if there are n drawn lines (ie the the total number of marked rows and marked columns is n)
+        """
+        return len(self.marked_rows) + len(self.marked_cols) == self.grid.n
+
+    def step5(self):
+        """
+        Finds the smallest unmarked value in the cost matrix and updates the matrix.
+
+        This step:
+        1. Finds the minimum value that is not covered by any line
+        2. Subtracts this value from all unmarked rows
+        3. Adds this value to all marked columns
+        4. Returns the updated cost matrix
+
+        Returns:
+        --------
+        dict
+            The updated cost matrix
+        """
+        cost_matrix = self.cost_matrix.copy()
+
+        # Find the smallest unmarked value
+        min_value = float("inf")
+        for row_key in cost_matrix:
+            if row_key not in self.marked_rows:  # Unmarked row
+                for col_key, value in cost_matrix[row_key].items():
+                    if (
+                        col_key not in self.marked_cols and value < min_value
+                    ):  # Unmarked column
+                        min_value = value
+
+        # Subtract from unmarked rows
+        for row_key in cost_matrix:
+            if row_key not in self.marked_rows:  # Unmarked row
+                for col_key in cost_matrix[row_key]:
+                    cost_matrix[row_key][col_key] -= min_value
+
+        # Add to marked columns
+        for row_key in cost_matrix:
+            for col_key in cost_matrix[row_key]:
+                if col_key in self.marked_cols:  # Marked column
+                    cost_matrix[row_key][col_key] += min_value
+
+        self.cost_matrix = cost_matrix
         return cost_matrix
