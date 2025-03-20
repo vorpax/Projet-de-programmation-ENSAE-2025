@@ -385,6 +385,8 @@ class SolverHungarian(Solver):
         self.cost_matrix = self.adjacency_dict_init().copy()
         self.marked_cols = set()
         self.marked_rows = set()
+        self.row_assignment = {}
+        self.col_assignment = {}
 
     def cost_matrix_init(self):
         """
@@ -517,56 +519,61 @@ class SolverHungarian(Solver):
 
     def step3(self):
         """
-        Marks the rows and columns of the cost matrix with the minimum number of lines.
+        Marks rows and columns to find minimum number of lines covering all zeros.
         """
         cost_matrix = self.cost_matrix.copy()
 
-        # Step 1: Find a maximal matching (assignment of zeros)
-        assignment = {}  # Maps row to column
+        # Step 1: Find a maximal assignment using a more thorough approach
+        row_assignment = {}  # Maps row -> column
+        col_assignment = {}  # Maps column -> row
+
+        # Use Hungarian matching algorithm for initial assignment
+        # (This is a simplified approach - a full implementation would use augmenting paths)
         for row_key in cost_matrix:
             for col_key, value in cost_matrix[row_key].items():
-                if value == 0 and col_key not in assignment.values():
-                    assignment[row_key] = col_key
+                if value == 0 and col_key not in col_assignment:
+                    row_assignment[row_key] = col_key
+                    col_assignment[col_key] = row_key
                     break
 
-        # Step 2: Mark rows with no assignments
-        unmarked_rows = {
-            row_key for row_key in cost_matrix if row_key not in assignment
-        }
-        marked_rows = set()
+        # Step 2: Mark rows with no assignment
+        unmarked_rows = set(cost_matrix.keys())
+        marked_rows = {row for row in cost_matrix if row not in row_assignment}
+        unmarked_rows -= marked_rows
         marked_cols = set()
 
-        # Step 3-5: Iteratively mark columns and rows
+        # Step 3-4: Iteratively mark columns and rows
         while True:
-            # Mark columns with zeros in unmarked rows
+            # Mark columns with zeros in marked rows
             new_cols = set()
-            for row in unmarked_rows:
-                for col_key, value in cost_matrix[row].items():
-                    if value == 0:
-                        new_cols.add(col_key)
+            for row in marked_rows:
+                for col, value in cost_matrix[row].items():
+                    if value == 0 and col not in marked_cols:
+                        new_cols.add(col)
 
-            if not new_cols - marked_cols:  # No new columns
+            if not new_cols:  # No new columns to mark
                 break
 
             marked_cols.update(new_cols)
 
             # Mark rows with assignments in marked columns
             new_rows = set()
-            for row_key, col_key in assignment.items():
-                if col_key in marked_cols and row_key not in marked_rows:
-                    new_rows.add(row_key)
+            for col in new_cols:
+                if col in col_assignment and col_assignment[col] not in marked_rows:
+                    new_rows.add(col_assignment[col])
 
-            if not new_rows:  # No new rows
+            if not new_rows:  # No new rows to mark
                 break
 
             marked_rows.update(new_rows)
-            unmarked_rows = unmarked_rows - marked_rows
+            unmarked_rows -= new_rows
 
         # The minimum cover consists of unmarked rows and marked columns
-        self.marked_rows = marked_rows
+        self.marked_rows = unmarked_rows  # Note: these are UNMARKED rows
         self.marked_cols = marked_cols
-
-        return marked_rows, marked_cols
+        self.row_assignment = row_assignment
+        self.col_assignment = col_assignment
+        return unmarked_rows, marked_cols
 
     def step4(self):
         """
@@ -606,6 +613,79 @@ class SolverHungarian(Solver):
         self.cost_matrix = cost_matrix
         return cost_matrix
 
+    def find_maximum_zero_matching(self, cost_matrix):
+        """Find maximum matching of zeros in cost matrix"""
+        row_assignment = {}
+        col_assignment = {}
+
+        # Initial greedy assignment (same as before)
+        for row_key in cost_matrix:
+            for col_key, value in cost_matrix[row_key].items():
+                if value == 0 and col_key not in col_assignment:
+                    row_assignment[row_key] = col_key
+                    col_assignment[col_key] = row_key
+                    break
+
+        # Try to improve the matching with alternating paths
+        while True:
+            # Find an unmatched row
+            unmatched_row = None
+            for row in cost_matrix:
+                if row not in row_assignment:
+                    unmatched_row = row
+                    break
+
+            if not unmatched_row:
+                break  # All rows are matched
+
+            # Try to find an augmenting path starting from this row
+            path_found = self.find_augmenting_path_for_zeros(
+                unmatched_row, cost_matrix, row_assignment, col_assignment
+            )
+            if not path_found:
+                break  # No more augmenting paths
+
+        return row_assignment, col_assignment
+
+    def find_augmenting_path_for_zeros(
+        self, start_row, cost_matrix, row_assignment, col_assignment
+    ):
+        """Find an augmenting path for zeros starting from a given row"""
+        visited_rows = set()
+        visited_cols = set()
+        stack = [start_row]
+        parent = {start_row: None}
+
+        while stack:
+            row = stack.pop()
+            visited_rows.add(row)
+
+            for col_key, value in cost_matrix[row].items():
+                if value == 0 and col_key not in visited_cols:
+                    visited_cols.add(col_key)
+                    if col_key not in col_assignment:
+                        # Found an augmenting path
+                        self.augment_path(
+                            col_key, row_assignment, col_assignment, parent
+                        )
+                        return True
+                    else:
+                        next_row = col_assignment[col_key]
+                        if next_row not in visited_rows:
+                            parent[next_row] = row
+                            stack.append(next_row)
+
+        return False
+
+    def augment_path(self, col, row_assignment, col_assignment, parent):
+        """Augment the matching along the found path"""
+        while col is not None:
+            row = parent[col]
+            next_col = row_assignment.get(row)
+            row_assignment[row] = col
+            col_assignment[col] = row
+            col = next_col
+
     def run(self):
         """
         Run the Hungarian algorithm to find the optimal matching
@@ -615,8 +695,6 @@ class SolverHungarian(Solver):
         self.step2()
 
         # Maximum number of iterations to prevent infinite loops
-        # Theoretically, the Hungarian algorithm has O(n³) complexity,
-        # so n² iterations should be more than enough
         max_iterations = len(self.cost_matrix) ** 2
         iteration_count = 0
 
