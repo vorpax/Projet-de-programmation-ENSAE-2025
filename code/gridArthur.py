@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors
 
+
 class Grid:
     """
     A class representing a grid with cells that have colors and values.
@@ -22,7 +23,13 @@ class Grid:
         The mapping between the value of `color[i][j]` and the corresponding color.
     """
 
-    def __init__(self, n: int, m: int, color: list[list[int]] = None, value: list[list[int]] = None):
+    def __init__(
+        self,
+        n: int,
+        m: int,
+        color: list[list[int]] = None,
+        value: list[list[int]] = None,
+    ):
         """
         Initializes the grid.
 
@@ -48,7 +55,7 @@ class Grid:
         if value is None or len(value) == 0:
             value = [[1 for _ in range(m)] for _ in range(n)]
         self.value = value
-        self.colors_list = ['w', 'r', 'b', 'g', 'k']
+        self.colors_list = ["w", "r", "b", "g", "k"]
 
     def __str__(self) -> str:
         """
@@ -92,12 +99,16 @@ class Grid:
         Space Complexity: O(n * m)
         """
         plt.figure(figsize=(8, 8))
-        plt.imshow(self.color, cmap=matplotlib.colors.ListedColormap(self.colors_list), interpolation='nearest')
+        plt.imshow(
+            self.color,
+            cmap=matplotlib.colors.ListedColormap(self.colors_list),
+            interpolation="nearest",
+        )
         for i in range(self.n):
             for j in range(self.m):
                 color_idx = self.color[i][j]
                 val = self.value[i][j]
-                plt.text(j, i, str(val), ha='center', va='center', fontsize=14)
+                plt.text(j, i, str(val), ha="center", va="center", fontsize=14)
         plt.xticks([])
         plt.yticks([])
         plt.show()
@@ -140,7 +151,9 @@ class Grid:
         Time Complexity: O(1)
         Space Complexity: O(1)
         """
-        return abs(self.value[pair[0][0]][pair[0][1]] - self.value[pair[1][0]][pair[1][1]])
+        return abs(
+            self.value[pair[0][0]][pair[0][1]] - self.value[pair[1][0]][pair[1][1]]
+        )
 
     def all_pairs(self) -> list[tuple[tuple[int, int], tuple[int, int]]]:
         """
@@ -157,9 +170,9 @@ class Grid:
         res = []
         allowed = {
             0: {0, 1, 2, 3},  # white can pair with all except black
-            1: {0, 1, 2},     # red can pair with white, blue, red
-            2: {0, 1, 2},     # blue can pair with white, blue, red
-            3: {0, 3}         # green can pair with white, green
+            1: {0, 1, 2},  # red can pair with white, blue, red
+            2: {0, 1, 2},  # blue can pair with white, blue, red
+            3: {0, 3},  # green can pair with white, green
         }
         directions = [(0, 1), (1, 0)]
 
@@ -170,7 +183,7 @@ class Grid:
                 c1 = self.color[i][j]
                 for dx, dy in directions:
                     k, l = i + dx, j + dy
-                    if 0 <= k < self.n and 0 <= l < self.m: # Check grid boundaries
+                    if 0 <= k < self.n and 0 <= l < self.m:  # Check grid boundaries
                         if self.is_forbidden(k, l):
                             continue
                         c2 = self.color[k][l]
@@ -206,7 +219,7 @@ class Grid:
         return res
 
     @classmethod
-    def grid_from_file(cls, file_name: str, read_values: bool = False) -> 'Grid':
+    def grid_from_file(cls, file_name: str, read_values: bool = False) -> "Grid":
         """
         Creates a Grid object from a file.
 
@@ -252,39 +265,49 @@ class Grid:
 
             grid = Grid(n, m, color, value)
         return grid
-    
-    def to_bipartite_graph(self)->dict:
+
+    def to_bipartite_graph(self) -> dict:
         """
         Returns a bipartite graph version of the grid, i.e., creates a graph of the grid with two sets of even cells, odd cells.
         The graph already contains the valid pairs as edges.
         Parameters: None
         Result: A graph G stored as a dict type with two underdict even and odd edges.
         """
-        G = {
-            'even': {},
-            'odd': {}
-        } # Preparing the two sets of edges.
+        G = {"even": {}, "odd": {}}  # Preparing the two sets of edges.
         pairs = self.all_pairs()
 
-    # Adding edges with color and adjacency constraints
+        # Adding edges with color and adjacency constraints
         for i in range(self.n):
             for j in range(self.m):
                 if self.color[i][j] != 4:  # Ignoring black cells
                     cell = (i, j)
-                    if (i + j)% 2 == 0 :
+                    if (i + j) % 2 == 0:
                         cell_parity = "even"
-                    else : 
+                    else:
                         cell_parity = "odd"  # Needed to access the Graph set
                     neighbor_parity = "even" if cell_parity == "odd" else "odd"
-                    for i2, j2 in [(i-1, j), (i+1, j), (i, j-1), (i, j+1)]: # Checking all the valid neighbors
-                            if 0 <= i2 < self.n and 0 <= j2 < self.m and not self.is_forbidden(i2, j2): # In the grid and not black
-                                if (cell, (i2, j2)) in pairs or ((i2, j2), cell) in pairs:
-                                    if cell not in G[cell_parity]: # If the cell is not already in the dictionnary
-                                        G[cell_parity][cell] = []
-                                    if (i2, j2) not in G[neighbor_parity]:
-                                        G[neighbor_parity][(i2, j2)] = []
-                                    if (i2, j2) not in G[cell_parity][cell]: # To avoid redundance
-                                        G[cell_parity][cell].append((i2, j2))
-                                        G[neighbor_parity][(i2, j2)].append(cell)
-                    
+                    for i2, j2 in [
+                        (i - 1, j),
+                        (i + 1, j),
+                        (i, j - 1),
+                        (i, j + 1),
+                    ]:  # Checking all the valid neighbors
+                        if (
+                            0 <= i2 < self.n
+                            and 0 <= j2 < self.m
+                            and not self.is_forbidden(i2, j2)
+                        ):  # In the grid and not black
+                            if (cell, (i2, j2)) in pairs or ((i2, j2), cell) in pairs:
+                                if (
+                                    cell not in G[cell_parity]
+                                ):  # If the cell is not already in the dictionnary
+                                    G[cell_parity][cell] = []
+                                if (i2, j2) not in G[neighbor_parity]:
+                                    G[neighbor_parity][(i2, j2)] = []
+                                if (i2, j2) not in G[cell_parity][
+                                    cell
+                                ]:  # To avoid redundance
+                                    G[cell_parity][cell].append((i2, j2))
+                                    G[neighbor_parity][(i2, j2)].append(cell)
+
         return G

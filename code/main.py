@@ -10,6 +10,7 @@ import sys
 from gridArthur import Grid
 from solver import SolverHungarian
 from solverArthur import SolverGeneral
+from max_weight_matching import max_weight_matching
 
 
 def main():
@@ -141,5 +142,5 @@ if __name__ == "__main__":
 
     solver = SolverGeneral(grid)
     solver.run()
-    print(solver)
+    print(solver.score())
     print("brk")

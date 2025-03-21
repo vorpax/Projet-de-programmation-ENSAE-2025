@@ -368,6 +368,7 @@ class SolverFordFulkerson(Solver):
 from scipy.optimize import linear_sum_assignment
 
 import networkx as nx
+from max_weight_matching import max_weight_matching
 
 
 class SolverGeneral(Solver):
@@ -409,7 +410,7 @@ class SolverGeneral(Solver):
                 G.add_edge(u, v, weight=-weight)
 
         # Trouver le maximum weight matching
-        matching = nx.max_weight_matching(G, maxcardinality=False)
+        matching = max_weight_matching(G, maxcardinality=False)
 
         # Convertir le matching en liste de paires
         self.pairs = list(matching)
