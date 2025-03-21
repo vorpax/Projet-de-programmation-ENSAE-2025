@@ -7,8 +7,9 @@ of loading a grid and applying a solver algorithm.
 """
 
 import sys
-from grid import Grid
+from gridArthur import Grid
 from solver import SolverHungarian
+from solverArthur import SolverGeneral
 
 
 def main():
@@ -25,7 +26,7 @@ def main():
     if len(sys.argv) > 1:
         file_name = sys.argv[1]
     else:
-        file_name = data_path + "grid01.in"
+        file_name = data_path + "grid00.in"
 
     # Load grid from file
     grid = Grid.grid_from_file(file_name, read_values=True)
@@ -130,4 +131,15 @@ def print_results(grid, solver, matching_pairs, score):
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    data_path = "./input/"
+    file_name = data_path + "grid00.in"
+
+    # Load grid from file
+    grid = Grid.grid_from_file(file_name, read_values=True)
+    # grid.cell_init()
+
+    solver = SolverGeneral(grid)
+    solver.run()
+    print(solver)
+    print("brk")
