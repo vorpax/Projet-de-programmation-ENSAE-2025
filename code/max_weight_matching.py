@@ -2,10 +2,6 @@
 
 from itertools import repeat
 
-__all__ = [
-    "max_weight_matching",
-]
-
 
 def matching_dict_to_set(matching):
     """Converts matching dict format to matching set format
