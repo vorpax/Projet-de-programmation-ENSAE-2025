@@ -368,7 +368,7 @@ class SolverFordFulkerson(Solver):
 from scipy.optimize import linear_sum_assignment
 
 import networkx as nx
-from max_weight_matching import max_weight_matching
+from max_weight_matching_copy import max_weight_matching
 
 
 class SolverGeneral(Solver):

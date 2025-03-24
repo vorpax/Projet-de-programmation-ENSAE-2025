@@ -56,6 +56,10 @@ class Solver:
         --------
         int
             The total score
+            
+        Time Complexity: O(n*m)
+            Where n is the number of rows and m is the number of columns in the grid.
+            The method iterates through all grid cells and pairs.
         """
         remaining_cells_cost = sum(
             self.grid.get_coordinate_value(cell[0], cell[1])
@@ -107,6 +111,11 @@ class SolverGreedy(Solver):
         --------
         list[list[tuple[int, int]]]
             The list of chosen pairs in the format [[(i1, j1), (i2, j2)], ...]
+            
+        Time Complexity: O(p^2)
+            Where p is the number of valid pairs in the grid (which is O(n*m) in the worst case).
+            The algorithm requires sorting all pairs O(p log p) and then for each pair,
+            it may need to check against all previous pairs O(p).
         """
         chosen_pairs = self.pairs
         chosen_cells = self.cells
@@ -196,6 +205,10 @@ class SolverFulkerson(Solver):
         Returns:
         --------
         None
+        
+        Time Complexity: O(n*m)
+            Where n is the number of rows and m is the number of columns in the grid.
+            The method processes every cell and its valid neighbors.
         """
         # On initialise source et sink (cellules "fictives", font pas partie de la grille)
         self.residual_graph["source"] = {}
@@ -251,6 +264,10 @@ class SolverFulkerson(Solver):
         -----
         The implementation uses a simple list as a queue. For better performance,
         consider using collections.deque instead.
+        
+        Time Complexity: O(V + E)
+            Where V is the number of vertices (cells + source + sink) and E is the number of edges
+            in the residual graph. This is the standard complexity of BFS.
         """
         # Une queue
         queue = ["source"]
@@ -292,6 +309,11 @@ class SolverFulkerson(Solver):
         --------
         int
             The maximum flow value, which equals the size of the maximum matching
+            
+        Time Complexity: O(V * E^2)
+            Where V is the number of vertices (cells + source + sink) and E is the number of edges
+            in the residual graph. In the worst case, each augmenting path search is O(E),
+            and we may need to find up to O(V*E) augmenting paths.
         """
 
         max_flow = 0
@@ -338,6 +360,12 @@ class SolverFulkerson(Solver):
         --------
         list[tuple[tuple[int, int], tuple[int, int]]]
             A list of matched pairs, where each pair is represented as ((i1, j1), (i2, j2))
+            
+        Time Complexity: O(V * E^2 + n*m)
+            Where V is the number of vertices, E is the number of edges in the residual graph,
+            n is the number of rows, and m is the number of columns in the grid.
+            The dominant term is the Ford-Fulkerson algorithm O(V * E^2), plus the cost of
+            extracting the matching from the graph O(n*m).
         """
 
         max_flow = self.ford_fulkerson()
@@ -409,6 +437,10 @@ class SolverHungarian(Solver):
         - Values represent the cost of pairing those cells
         - Valid pairs (adjacent cells that aren't forbidden) have actual costs
         - Invalid pairs or forbidden pairs have infinity cost
+        
+        Time Complexity: O(n^2 * m^2)
+            Where n is the number of rows and m is the number of columns in the grid.
+            In the worst case, we need to initialize O((n*m)^2) entries in the cost matrix.
         """
         # Initialize the cost matrix with dictionaries for each cell
         self.cost_matrix = {}
@@ -822,6 +854,11 @@ class SolverHungarian(Solver):
         --------
         list[tuple]
             List of matched pairs in the format [(cell1, cell2), ...]
+            
+        Time Complexity: O(n^3 * m^3)
+            Where n is the number of rows and m is the number of columns in the grid.
+            The Hungarian algorithm has a cubic complexity in terms of the size of the cost matrix,
+            which is O(n*m) × O(n*m) in our grid representation.
         """
         # Initialize cost matrix by reducing rows and columns
         self.step1()

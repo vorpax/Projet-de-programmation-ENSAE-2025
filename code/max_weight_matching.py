@@ -81,6 +81,11 @@ def max_weight_matching(G, maxcardinality=False, weight="weight"):
 
     Bipartite graphs can also be matched using the functions present in
     :mod:`networkx.algorithms.bipartite.matching`.
+    
+    Time Complexity: O(n^3)
+        Where n is the number of nodes in the graph. This is due to the combination of
+        the blossom algorithm for finding augmenting paths and the primal-dual method
+        for finding a matching of maximum weight.
 
     References
     ----------

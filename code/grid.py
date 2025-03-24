@@ -201,6 +201,9 @@ class Grid:
         -------
         IndexError
             If either cell's coordinates are out of bounds
+            
+        Time Complexity: O(1)
+            Constant time as it only involves direct index lookup and matrix access.
         """
         if (
             pair[0][0] < 0
@@ -235,6 +238,9 @@ class Grid:
         cost: int
             the cost of the pair defined as the absolute value
             of the difference between their values
+            
+        Time Complexity: O(1)
+            Constant time operation as it only involves direct lookup of values and simple calculation.
         """
 
         if self.is_pair_forbidden(pair):
@@ -255,6 +261,10 @@ class Grid:
             A list of valid cell pairs, where each pair is represented as a list of two tuples
             [(i1, j1), (i2, j2)], where (i1, j1) and (i2, j2) are the coordinates of two
             adjacent cells that can be paired together.
+            
+        Time Complexity: O(n*m)
+            Where n is the number of rows and m is the number of columns in the grid.
+            The method iterates over all cells and checks their valid adjacent neighbors.
         """
         liste_of_pairs = []
         for i in range(self.n):
@@ -322,6 +332,10 @@ class Grid:
         Returns:
         --------
         None
+        
+        Time Complexity: O(n*m)
+            Where n is the number of rows and m is the number of columns in the grid.
+            The method creates a Cell object for each position in the grid.
         """
         for i in range(self.n):
             self.cells.append([])
@@ -366,6 +380,10 @@ class Grid:
             If the specified file doesn't exist
         ValueError
             If the file format is incorrect or has invalid color values
+            
+        Time Complexity: O(n*m)
+            Where n is the number of rows and m is the number of columns in the grid.
+            The method reads and processes the file contents line by line.
         """
         if not os.path.exists(file_name):
             raise FileNotFoundError(f"The file {file_name} does not exist.")

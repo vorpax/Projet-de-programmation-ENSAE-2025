@@ -7,10 +7,14 @@ of loading a grid and applying a solver algorithm.
 """
 
 import sys
-from gridArthur import Grid
+
+# from gridArthur import Grid
 from solver import SolverHungarian
-from solverArthur import SolverGeneral
-from max_weight_matching import max_weight_matching
+from grid import Grid
+
+# from solverArthur import SolverGeneral
+
+# from max_weight_matching import max_weight_matching
 
 
 def main():
@@ -140,7 +144,7 @@ if __name__ == "__main__":
     grid = Grid.grid_from_file(file_name, read_values=True)
     # grid.cell_init()
 
-    solver = SolverGeneral(grid)
+    solver = SolverHungarian(grid)
     solver.run()
     print(solver.score())
     print("brk")
