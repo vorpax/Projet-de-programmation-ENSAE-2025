@@ -144,3 +144,11 @@ if __name__ == "__main__":
     solver.run()
     print(solver.score())
     print("brk")
+
+# Hungarian Algorithm
+# Edmond's algorithm
+# edmond's algorithm 
+# https://cp-algorithms.com/graph/Assignment-problem-min-flow.html
+# https://github.com/keon/algorithms
+# Va falloir mettre de bons poids pour gérer le truc.
+# Mettre un max valeur à la bien.

@@ -135,6 +135,7 @@ def max_weight_matching(G, maxcardinality=False, weight="weight"):
             while stack:
                 t = stack.pop()
                 if isinstance(t, Blossom):
+                    print(f"found blossom {t}")
                     stack.extend(t.childs)
                 else:
                     yield t
@@ -240,6 +241,7 @@ def max_weight_matching(G, maxcardinality=False, weight="weight"):
         if t == 1:
             # b became an S-vertex/blossom; add it(s vertices) to the queue.
             if isinstance(b, Blossom):
+                print("blossom found")
                 queue.extend(b.leaves())
             else:
                 queue.append(b)
@@ -462,6 +464,7 @@ def max_weight_matching(G, maxcardinality=False, weight="weight"):
                         j += jstep
                         continue
                     if isinstance(bv, Blossom):
+                        print("blossom")
                         for v in bv.leaves():
                             if label.get(v):
                                 break
@@ -535,11 +538,13 @@ def max_weight_matching(G, maxcardinality=False, weight="weight"):
                 else:
                     x, w = b.edges[j - 1]
                 if isinstance(t, Blossom):
+                    print("blossom found")
                     yield (t, w)
                 # Step to the next sub-blossom and augment it recursively.
                 j += jstep
                 t = b.childs[j]
                 if isinstance(t, Blossom):
+                    print("blossom")
                     yield (t, x)
                 # Match the edge connecting those sub-blossoms.
                 mate[w] = x
