@@ -424,7 +424,7 @@ class SolverHungarian(Solver):
             for j in range(self.grid.m):
                 cell_id = f"cell_{i}_{j}"
                 self.cost_matrix[cell_id] = {
-                    other_cell: float("inf") for other_cell in all_cell_ids
+                    other_cell: 0 for other_cell in all_cell_ids
                 }
 
         # Fill in actual costs for valid adjacent cells
@@ -447,7 +447,10 @@ class SolverHungarian(Solver):
                         adj_cell_id = f"cell_{adj_i}_{adj_j}"
                         # Only add finite costs for valid pairs
                         if not self.grid.is_pair_forbidden(((i, j), (adj_i, adj_j))):
-                            pair_cost = self.grid.cost(((i, j), (adj_i, adj_j)))
+                            value_1 = self.grid.get_coordinate_value(i, j)
+                            value_2 = self.grid.get_coordinate_value(adj_i, adj_j)
+
+                            pair_cost = -min(value_1, value_2)
                             self.cost_matrix[cell_id][adj_cell_id] = pair_cost
 
         return self.cost_matrix
@@ -746,8 +749,9 @@ class SolverHungarian(Solver):
         # The condition must be exactly equal to ensure we reach optimal solution
         # We also check the iteration count to ensure we don't terminate too early
         # We're comparing against the iteration_count attribute that is set in the run method
-        return (total_covering_lines == len(self.row_assignment) and 
-                getattr(self, 'iteration_count', 0) >= min(5, len(self.cost_matrix) // 10))
+        return total_covering_lines == len(self.row_assignment) and getattr(
+            self, "iteration_count", 0
+        ) >= min(5, len(self.cost_matrix) // 10)
 
     def step5(self):
         """
@@ -848,7 +852,9 @@ class SolverHungarian(Solver):
             if self.step4():
                 # Optimal solution found according to our modified criterion
                 # We add 1 to iteration_count for display purposes to avoid showing "0 iterations"
-                print(f"Optimal solution found after {self.iteration_count + 1} iterations")
+                print(
+                    f"Optimal solution found after {self.iteration_count + 1} iterations"
+                )
                 break
 
             self.step5()
