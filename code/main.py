@@ -7,8 +7,8 @@ of loading a grid and applying a solver algorithm.
 """
 
 import sys
-
-# from gridArthur import Grid
+from gridArthur import Grid as GridArthur
+from grid import Grid
 from solver import SolverHungarian
 from grid import Grid
 
@@ -148,3 +148,11 @@ if __name__ == "__main__":
     solver.run()
     print(solver.score())
     print("brk")
+
+# Hungarian Algorithm
+# Edmond's algorithm
+# edmond's algorithm
+# https://cp-algorithms.com/graph/Assignment-problem-min-flow.html
+# https://github.com/keon/algorithms
+# Va falloir mettre de bons poids pour gérer le truc.
+# Mettre un max valeur à la bien.
