@@ -380,7 +380,7 @@ def main():
     if len(sys.argv) > 1:
         file_name = sys.argv[1]
     else:
-        file_name = data_path + "grid01.in"
+        file_name = data_path + "grid28.in"
 
     # Make sure the file exists
     if not os.path.exists(file_name):
