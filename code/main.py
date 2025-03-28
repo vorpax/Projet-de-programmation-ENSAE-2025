@@ -138,16 +138,21 @@ def print_results(grid, solver, matching_pairs, score):
 if __name__ == "__main__":
     # main()
     data_path = "./input/"
-    file_name = data_path + "grid00.in"
+    file_name = data_path + "grid01.in"
 
     # Load grid from file
     grid = Grid.grid_from_file(file_name, read_values=True)
     # grid.cell_init()
 
     solver = SolverHungarian(grid)
-    solver.run()
-    print(solver.score())
+    cost_matrix = solver.cost_matrix_init()
+    print(cost_matrix)
+
     print("brk")
+
+    # solver.run()
+    # print(solver.score())
+    # print("brk")
 
 # Hungarian Algorithm
 # Edmond's algorithm

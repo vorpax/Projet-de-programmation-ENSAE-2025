@@ -56,7 +56,7 @@ class Solver:
         --------
         int
             The total score
-            
+
         Time Complexity: O(n*m)
             Where n is the number of rows and m is the number of columns in the grid.
             The method iterates through all grid cells and pairs.
@@ -111,7 +111,7 @@ class SolverGreedy(Solver):
         --------
         list[list[tuple[int, int]]]
             The list of chosen pairs in the format [[(i1, j1), (i2, j2)], ...]
-            
+
         Time Complexity: O(p^2)
             Where p is the number of valid pairs in the grid (which is O(n*m) in the worst case).
             The algorithm requires sorting all pairs O(p log p) and then for each pair,
@@ -205,7 +205,7 @@ class SolverFulkerson(Solver):
         Returns:
         --------
         None
-        
+
         Time Complexity: O(n*m)
             Where n is the number of rows and m is the number of columns in the grid.
             The method processes every cell and its valid neighbors.
@@ -264,7 +264,7 @@ class SolverFulkerson(Solver):
         -----
         The implementation uses a simple list as a queue. For better performance,
         consider using collections.deque instead.
-        
+
         Time Complexity: O(V + E)
             Where V is the number of vertices (cells + source + sink) and E is the number of edges
             in the residual graph. This is the standard complexity of BFS.
@@ -309,7 +309,7 @@ class SolverFulkerson(Solver):
         --------
         int
             The maximum flow value, which equals the size of the maximum matching
-            
+
         Time Complexity: O(V * E^2)
             Where V is the number of vertices (cells + source + sink) and E is the number of edges
             in the residual graph. In the worst case, each augmenting path search is O(E),
@@ -360,7 +360,7 @@ class SolverFulkerson(Solver):
         --------
         list[tuple[tuple[int, int], tuple[int, int]]]
             A list of matched pairs, where each pair is represented as ((i1, j1), (i2, j2))
-            
+
         Time Complexity: O(V * E^2 + n*m)
             Where V is the number of vertices, E is the number of edges in the residual graph,
             n is the number of rows, and m is the number of columns in the grid.
@@ -425,41 +425,34 @@ class SolverHungarian(Solver):
         self.marked_rows = set()
         self.row_assignment = {}
         self.col_assignment = {}
+        self.true_cost_matrix = []
 
     def adjacency_dict_init(self):
         """
-        Initializes the cost matrix for the Hungarian algorithm using a dictionary
-        representation for efficient sparse matrix operations.
+        Initializes the cost matrix for the Hungarian algorithm using a sparse dictionary
+        representation for efficient operations.
 
         The cost matrix is represented as:
         - Rows correspond to cells in the grid
         - Columns also correspond to cells in the grid
         - Values represent the cost of pairing those cells
-        - Valid pairs (adjacent cells that aren't forbidden) have actual costs
-        - Invalid pairs or forbidden pairs have infinity cost
-        
-        Time Complexity: O(n^2 * m^2)
+        - Valid pairs (adjacent cells that aren't forbidden) have cost = -min(value_1, value_2)
+        - Invalid pairs or forbidden pairs are not stored in the dictionary
+
+        Time Complexity: O(n*m)
             Where n is the number of rows and m is the number of columns in the grid.
-            In the worst case, we need to initialize O((n*m)^2) entries in the cost matrix.
+            We only store valid adjacent pairs rather than all possible pairs.
         """
-        # Initialize the cost matrix with dictionaries for each cell
+        # Initialize the cost matrix with empty dictionaries for each cell
         self.cost_matrix = {}
 
-        # Get all possible cell IDs
-        all_cell_ids = []
-        for i in range(self.grid.n):
-            for j in range(self.grid.m):
-                all_cell_ids.append(f"cell_{i}_{j}")
-
-        # Initialize all entries in the cost matrix with infinity
+        # Initialize empty dictionaries for each cell
         for i in range(self.grid.n):
             for j in range(self.grid.m):
                 cell_id = f"cell_{i}_{j}"
-                self.cost_matrix[cell_id] = {
-                    other_cell: 0 for other_cell in all_cell_ids
-                }
+                self.cost_matrix[cell_id] = {}
 
-        # Fill in actual costs for valid adjacent cells
+        # Fill in costs for valid adjacent cells
         for i in range(self.grid.n):
             for j in range(self.grid.m):
                 # Skip black cells - they can't be paired
@@ -477,15 +470,51 @@ class SolverHungarian(Solver):
                             continue
 
                         adj_cell_id = f"cell_{adj_i}_{adj_j}"
-                        # Only add finite costs for valid pairs
+                        # Only add costs for valid pairs
                         if not self.grid.is_pair_forbidden(((i, j), (adj_i, adj_j))):
                             value_1 = self.grid.get_coordinate_value(i, j)
                             value_2 = self.grid.get_coordinate_value(adj_i, adj_j)
 
+                            # Use negative min value as cost (to maximize in minimization context)
                             pair_cost = -min(value_1, value_2)
                             self.cost_matrix[cell_id][adj_cell_id] = pair_cost
 
         return self.cost_matrix
+
+    def cost_matrix_init(self):
+        """
+        Initializes the cost matrix
+        """
+        cost_matrix = self.true_cost_matrix
+        cost_matrix = [[]] * self.grid.m * self.grid.n
+        for i in range(self.grid.n):
+            for j in range(self.grid.m):
+                index = self.grid.m * i + j
+                cost_matrix[index] = [0] * self.grid.m * self.grid.n
+
+        for i in range(self.grid.n):
+            for j in range(self.grid.m):
+                adjacents = [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)]
+                print(adjacents)
+                for adj_i, adj_j in adjacents:
+                    index = self.grid.m * i + j
+
+                    print(self.grid.m)
+                    print(self.grid.n)
+                    if 0 <= adj_i < self.grid.n - 1 and 0 <= adj_j < self.grid.m:
+                        if self.grid.get_coordinate_color(adj_i, adj_j) == "k":
+                            continue
+
+                        if not self.grid.is_pair_forbidden(((i, j), (adj_i, adj_j))):
+                            value_1 = self.grid.get_coordinate_value(i, j)
+                            value_2 = self.grid.get_coordinate_value(adj_i, adj_j)
+                            index_adj = self.grid.m * (adj_i) + (adj_j)
+                            # Use negative min value as cost (to maximize in minimization context)
+                            pair_cost = -min(value_1, value_2)
+                            cost_matrix[index][index_adj] = pair_cost
+                            cost_matrix[index_adj][index] = pair_cost
+
+        return cost_matrix
 
     def step1(self):
         """
@@ -495,22 +524,19 @@ class SolverHungarian(Solver):
         the matching solution.
         """
         for row_key in self.cost_matrix:
-            # Get all finite values in this row (ignoring infinity)
-            row_values = [
-                v for v in self.cost_matrix[row_key].values() if v != float("inf")
-            ]
+            # Get all values in this row
+            row_values = list(self.cost_matrix[row_key].values())
 
-            # If there are no finite values, skip this row
+            # If there are no values, skip this row
             if not row_values:
                 continue
 
-            # Find minimum finite value in this row
-            min_value = min(row_values)
+            # Find minimum value in this row
+            min_value = min(row_values) if row_values else 0
 
-            # Subtract min value from each finite element in the row
+            # Subtract min value from each element in the row
             for col_key in self.cost_matrix[row_key]:
-                if self.cost_matrix[row_key][col_key] != float("inf"):
-                    self.cost_matrix[row_key][col_key] -= min_value
+                self.cost_matrix[row_key][col_key] -= min_value
 
         return self.cost_matrix
 
@@ -528,26 +554,22 @@ class SolverHungarian(Solver):
 
         # For each column
         for col_key in all_cols:
-            # Gather all finite values in this column (ignoring infinity)
+            # Gather all values in this column
             column_values = []
             for row_key in self.cost_matrix:
-                if col_key in self.cost_matrix[row_key] and self.cost_matrix[row_key][
-                    col_key
-                ] != float("inf"):
+                if col_key in self.cost_matrix[row_key]:
                     column_values.append(self.cost_matrix[row_key][col_key])
 
-            # If there are no finite values in this column, skip it
+            # If there are no values in this column, skip it
             if not column_values:
                 continue
 
-            # Find minimum finite value in this column
-            min_value = min(column_values)
+            # Find minimum value in this column
+            min_value = min(column_values) if column_values else 0
 
-            # Subtract min value from each finite element in the column
+            # Subtract min value from each element in the column
             for row_key in self.cost_matrix:
-                if col_key in self.cost_matrix[row_key] and self.cost_matrix[row_key][
-                    col_key
-                ] != float("inf"):
+                if col_key in self.cost_matrix[row_key]:
                     self.cost_matrix[row_key][col_key] -= min_value
 
         return self.cost_matrix
@@ -568,7 +590,7 @@ class SolverHungarian(Solver):
         row_assignment = {}
         col_assignment = {}
 
-        # Initial greedy assignment - only consider zero values (not infinity)
+        # Initial greedy assignment - only consider zero values
         for row_key in self.cost_matrix:
             for col_key, value in self.cost_matrix[row_key].items():
                 if value == 0 and col_key not in col_assignment:
@@ -629,10 +651,10 @@ class SolverHungarian(Solver):
         while queue:
             current_row = queue.pop(0)  # Dequeue
 
-            # Try all columns with zeros from this row (excluding infinite values)
+            # Try all columns with zeros from this row
             for col_key, value in self.cost_matrix[current_row].items():
-                # Only consider zeros (not infinity) for the augmenting path
-                if value == 0 and value != float("inf") and col_key not in visited_cols:
+                # Only consider zeros for the augmenting path
+                if value == 0 and col_key not in visited_cols:
                     visited_cols.add(col_key)
                     parent[col_key] = current_row
 
@@ -801,40 +823,39 @@ class SolverHungarian(Solver):
         dict
             The updated cost matrix
         """
-        # Find the minimum finite value in the uncovered part of the matrix
+        # Find the minimum value in the uncovered part of the matrix
         min_value = float("inf")
 
         for row_key in self.cost_matrix:
             if row_key not in self.marked_rows:  # Only consider unmarked rows
                 for col_key, value in self.cost_matrix[row_key].items():
-                    if col_key not in self.marked_cols and value != float(
-                        "inf"
-                    ):  # Only consider unmarked columns with finite values
+                    if (
+                        col_key not in self.marked_cols
+                    ):  # Only consider unmarked columns
                         if value < min_value:
                             min_value = value
 
-        if min_value == float("inf"):
-            return self.cost_matrix  # No uncovered elements with finite cost
+        if min_value == float("inf") or min_value == 0:
+            # If we couldn't find a minimum value or it's already zero,
+            # add a small perturbation to break potential cycles
+            for row_key in self.cost_matrix:
+                if row_key not in self.marked_rows and self.cost_matrix[row_key]:
+                    for col_key in list(self.cost_matrix[row_key].keys()):
+                        if col_key not in self.marked_cols:
+                            self.cost_matrix[row_key][col_key] -= 0.001
+            return self.cost_matrix
 
-        # Subtract min_value from every uncovered element with finite cost
+        # Subtract min_value from every uncovered element
         for row_key in self.cost_matrix:
             if row_key not in self.marked_rows:  # Unmarked row
-                for col_key in self.cost_matrix[row_key]:
-                    if col_key not in self.marked_cols and self.cost_matrix[row_key][
-                        col_key
-                    ] != float(
-                        "inf"
-                    ):  # Unmarked column with finite cost
+                for col_key in list(self.cost_matrix[row_key].keys()):
+                    if col_key not in self.marked_cols:  # Unmarked column
                         self.cost_matrix[row_key][col_key] -= min_value
 
-        # Add min_value to every element with finite cost at intersection of marked row and marked column
+        # Add min_value to every element at intersection of marked row and marked column
         for row_key in self.marked_rows:  # Marked row
-            for col_key in self.cost_matrix[row_key]:
-                if col_key in self.marked_cols and self.cost_matrix[row_key][
-                    col_key
-                ] != float(
-                    "inf"
-                ):  # Marked column with finite cost
+            for col_key in list(self.cost_matrix[row_key].keys()):
+                if col_key in self.marked_cols:  # Marked column
                     self.cost_matrix[row_key][col_key] += min_value
 
         return self.cost_matrix
@@ -858,7 +879,7 @@ class SolverHungarian(Solver):
         --------
         list[tuple]
             List of matched pairs in the format [(cell1, cell2), ...]
-            
+
         Time Complexity: O(n^3 * m^3)
             Where n is the number of rows and m is the number of columns in the grid.
             The Hungarian algorithm has a cubic complexity in terms of the size of the cost matrix,
@@ -869,7 +890,8 @@ class SolverHungarian(Solver):
         self.step2()
 
         # Maximum number of iterations to prevent infinite loops
-        max_iterations = len(self.cost_matrix) * 2
+        # Use a more reasonable maximum that's proportional to the size of the grid
+        max_iterations = min(100, self.grid.n * self.grid.m)
         self.iteration_count = 0
 
         # Keep track of best assignment found
