@@ -7,7 +7,7 @@
   "python.testing.unittestEnabled": true,
   "pylint.args": ["--disable=C0413", "--disable=C0301"],
   "[python]": {
-    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.definitionLinkOpensInPeek": true
   },
   "python.terminal.activateEnvInCurrentTerminal": false,
@@ -16,5 +16,7 @@
   "python.analysis.languageServerMode": "full",
   "python.analysis.typeCheckingMode": "off",
   "python.analysis.typeEvaluation.analyzeUnannotatedFunctions": true,
-  "python.analysis.typeEvaluation.enableReachabilityAnalysis": false
+  "python.analysis.typeEvaluation.enableReachabilityAnalysis": false,
+  "editor.defaultFormatter": "charliermarsh.ruff",
+  "notebook.defaultFormatter": "charliermarsh.ruff"
 }
