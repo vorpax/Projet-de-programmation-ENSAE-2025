@@ -1,20 +1,15 @@
 """
 Main module for testing the grid and solvers.
 
-This module loads a grid from an input file, initializes cells, and runs
-a solver to find a matching solution. It demonstrates the basic workflow
-of loading a grid and applying a solver algorithm.
+This module loads a grid from an input file, initializes and runs
+the Hungarian algorithm solver to find an optimal matching solution.
+It demonstrates the basic workflow of loading a grid and applying
+the Hungarian algorithm.
 """
 
 import sys
-from gridArthur import Grid as GridArthur
 from grid import Grid
 from solver import SolverHungarian
-from grid import Grid
-
-# from solverArthur import SolverGeneral
-
-# from max_weight_matching import max_weight_matching
 
 
 def main():
@@ -31,22 +26,21 @@ def main():
     if len(sys.argv) > 1:
         file_name = sys.argv[1]
     else:
-        file_name = data_path + "grid00.in"
+        file_name = data_path + "grid01.in"
 
     # Load grid from file
     grid = Grid.grid_from_file(file_name, read_values=True)
-    grid.cell_init()
 
     # Display grid information
-    print_grid_cells(grid)
+    print_grid_info(grid)
 
-    # Initialize and run the Hungarian solver
+    # Initialize the Hungarian solver
     solver = SolverHungarian(grid)
 
     # Display valid pair information
     print_valid_pairs(grid)
 
-    # Run the algorithm
+    # Run the Hungarian algorithm
     matching_pairs = solver.run()
     score = solver.score()
 
@@ -54,8 +48,11 @@ def main():
     print_results(grid, solver, matching_pairs, score)
 
 
-def print_grid_cells(grid):
-    """Print all cells in the grid with their colors and values."""
+def print_grid_info(grid):
+    """Print information about the grid dimensions and cells."""
+    print(f"Grid dimensions: {grid.n} rows x {grid.m} columns")
+
+    print("\nGrid cells:")
     for i in range(grid.n):
         for j in range(grid.m):
             color = grid.get_coordinate_color(i, j)
@@ -65,10 +62,10 @@ def print_grid_cells(grid):
 
 def print_valid_pairs(grid):
     """Print information about all possible valid pairs in the grid."""
-    print("All possible valid pairs for this grid:")
+    print("\nAll possible valid pairs for this grid:")
     all_valid_pairs = []
 
-    print("Grid colors and values:")
+    print("\nGrid colors and values:")
     for i in range(grid.n):
         color_row = [grid.color[i][j] for j in range(grid.m)]
         value_row = [grid.value[i][j] for j in range(grid.m)]
@@ -99,6 +96,7 @@ def print_valid_pairs(grid):
 
 def print_results(grid, solver, matching_pairs, score):
     """Print the results of the solver run."""
+    print("\nHungarian Algorithm Results:")
     print(f"Final score: {score}")
     print(f"Number of pairs: {len(matching_pairs)}")
 
@@ -128,7 +126,7 @@ def print_results(grid, solver, matching_pairs, score):
 
     print(f"\nNumber of remaining cells: {len(remaining_cells)}")
     if remaining_cells:
-        print("All remaining cells:")
+        print("Remaining cells:")
         for cell in remaining_cells:
             value = grid.get_coordinate_value(cell[0], cell[1])
             color = grid.get_coordinate_color(cell[0], cell[1])
@@ -136,28 +134,4 @@ def print_results(grid, solver, matching_pairs, score):
 
 
 if __name__ == "__main__":
-    # main()
-    data_path = "./input/"
-    file_name = data_path + "grid01.in"
-
-    # Load grid from file
-    grid = Grid.grid_from_file(file_name, read_values=True)
-    # grid.cell_init()
-
-    solver = SolverHungarian(grid)
-    cost_matrix = solver.cost_matrix_init()
-    print(cost_matrix)
-
-    print("brk")
-
-    # solver.run()
-    # print(solver.score())
-    # print("brk")
-
-# Hungarian Algorithm
-# Edmond's algorithm
-# edmond's algorithm
-# https://cp-algorithms.com/graph/Assignment-problem-min-flow.html
-# https://github.com/keon/algorithms
-# Va falloir mettre de bons poids pour gérer le truc.
-# Mettre un max valeur à la bien.
+    main()
