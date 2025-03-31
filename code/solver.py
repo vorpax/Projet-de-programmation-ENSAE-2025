@@ -2,14 +2,14 @@
 A module for the solver class and its implementations.
 
 This module contains the base Solver class and various solver implementations
-including SolverEmpty, SolverGreedy, and SolverFulkerson (which uses the
-Ford-Fulkerson algorithm for maximum bipartite matching).
+including SolverEmpty, SolverGreedy, SolverFulkerson (which uses the
+Ford-Fulkerson algorithm for maximum bipartite matching), and SolverHungarian
+(which uses the Hungarian algorithm for minimum-cost bipartite matching).
 """
 
 from math import inf
+import numpy as np
 from grid import Grid
-
-# https://en.wikipedia.org/wiki/Hungarian_algorithm
 
 
 class Solver:
@@ -152,7 +152,6 @@ class SolverGreedy(Solver):
         return chosen_pairs
 
 
-# adapter avec liste et, m*i + j ? si je veux enregistrer capacité ???? (enft non pas besoin)
 
 
 class SolverFulkerson(Solver):
@@ -342,7 +341,7 @@ class SolverFulkerson(Solver):
 
             max_flow += min_capacity
 
-            path = self.find_augmenting_path()  # And again and again
+            path = self.find_augmenting_path()  # Continue finding augmenting paths
 
         return max_flow
 
@@ -403,565 +402,541 @@ class SolverFulkerson(Solver):
 class SolverHungarian(Solver):
     """
     A solver implementing the Hungarian algorithm for minimum-cost bipartite matching.
-
-    This implementation follows the standard steps of the Hungarian algorithm:
-    1. Subtract the minimum value from each row
-    2. Subtract the minimum value from each column
-    3. Cover all zeros with the minimum number of lines
-    4. If the number of covering lines equals the size of the matrix, we're done
-    5. Otherwise, create new zeros and repeat from step 3
-
-    The algorithm finds a matching that minimizes the total cost of paired cells.
+    
+    This implementation uses the Hungarian algorithm to find an optimal assignment
+    that maximizes the total weight of the matching in a bipartite graph representation
+    of the grid.
+    
+    Attributes:
+    -----------
+    grid: Grid
+        The grid to solve
+    pairs: list[tuple[tuple[int, int], tuple[int, int]]]
+        A list of chosen pairs after running the algorithm
+    cells: list[tuple[int, int]]
+        A list of chosen cells after running the algorithm
+    rules: str
+        The matching rules to use ("original rules" or "new rules")
     """
 
-    def __init__(self, grid):
+    def __init__(self, grid: Grid):
         """
-        Initializes the solver with a grid and sets up the cost matrix.
+        Initializes the solver with a grid.
+
+        Parameters:
+        -----------
+        grid: Grid
+            The grid to solve
         """
         super().__init__(grid)
-        self.cost_matrix = {}
-        self.adjacency_dict_init()
-        self.marked_cols = set()
-        self.marked_rows = set()
-        self.row_assignment = {}
-        self.col_assignment = {}
-        self.true_cost_matrix = []
+        self.rules = "original rules"
 
-    def adjacency_dict_init(self):
+    def run(self) -> list[tuple[tuple[int, int], tuple[int, int]]]:
         """
-        Initializes the cost matrix for the Hungarian algorithm using a sparse dictionary
-        representation for efficient operations.
-
-        The cost matrix is represented as:
-        - Rows correspond to cells in the grid
-        - Columns also correspond to cells in the grid
-        - Values represent the cost of pairing those cells
-        - Valid pairs (adjacent cells that aren't forbidden) have cost = -min(value_1, value_2)
-        - Invalid pairs or forbidden pairs are not stored in the dictionary
-
-        Time Complexity: O(n*m)
-            Where n is the number of rows and m is the number of columns in the grid.
-            We only store valid adjacent pairs rather than all possible pairs.
-        """
-        # Initialize the cost matrix with empty dictionaries for each cell
-        self.cost_matrix = {}
-
-        # Initialize empty dictionaries for each cell
-        for i in range(self.grid.n):
-            for j in range(self.grid.m):
-                cell_id = f"cell_{i}_{j}"
-                self.cost_matrix[cell_id] = {}
-
-        # Fill in costs for valid adjacent cells
-        for i in range(self.grid.n):
-            for j in range(self.grid.m):
-                # Skip black cells - they can't be paired
-                if self.grid.get_coordinate_color(i, j) == "k":
-                    continue
-
-                cell_id = f"cell_{i}_{j}"
-                # Check adjacent cells (up, down, left, right)
-                adjacents = [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)]
-
-                for adj_i, adj_j in adjacents:
-                    if 0 <= adj_i < self.grid.n and 0 <= adj_j < self.grid.m:
-                        # Skip adjacent black cells - they can't be paired either
-                        if self.grid.get_coordinate_color(adj_i, adj_j) == "k":
-                            continue
-
-                        adj_cell_id = f"cell_{adj_i}_{adj_j}"
-                        # Only add costs for valid pairs
-                        if not self.grid.is_pair_forbidden(((i, j), (adj_i, adj_j))):
-                            value_1 = self.grid.get_coordinate_value(i, j)
-                            value_2 = self.grid.get_coordinate_value(adj_i, adj_j)
-
-                            # Use negative min value as cost (to maximize in minimization context)
-                            pair_cost = -min(value_1, value_2)
-                            self.cost_matrix[cell_id][adj_cell_id] = pair_cost
-
-        return self.cost_matrix
-
-    def cost_matrix_init(self):
-        """
-        Initializes the cost matrix
-        """
-        cost_matrix = self.true_cost_matrix
-        cost_matrix = [[]] * self.grid.m * self.grid.n
-        for i in range(self.grid.n):
-            for j in range(self.grid.m):
-                index = self.grid.m * i + j
-                cost_matrix[index] = [0] * self.grid.m * self.grid.n
-
-        for i in range(self.grid.n):
-            for j in range(self.grid.m):
-                adjacents = [(i + 1, j), (i - 1, j), (i, j + 1), (i, j - 1)]
-                print(adjacents)
-                for adj_i, adj_j in adjacents:
-                    index = self.grid.m * i + j
-
-                    print(self.grid.m)
-                    print(self.grid.n)
-                    if 0 <= adj_i < self.grid.n - 1 and 0 <= adj_j < self.grid.m:
-                        if self.grid.get_coordinate_color(adj_i, adj_j) == "k":
-                            continue
-
-                        if not self.grid.is_pair_forbidden(((i, j), (adj_i, adj_j))):
-                            value_1 = self.grid.get_coordinate_value(i, j)
-                            value_2 = self.grid.get_coordinate_value(adj_i, adj_j)
-                            index_adj = self.grid.m * (adj_i) + (adj_j)
-                            # Use negative min value as cost (to maximize in minimization context)
-                            pair_cost = -min(value_1, value_2)
-                            cost_matrix[index][index_adj] = pair_cost
-                            cost_matrix[index_adj][index] = pair_cost
-
-        return cost_matrix
-
-    def step1(self):
-        """
-        Subtract the minimum value from each row of the cost matrix.
-
-        This creates at least one zero in each row, which are candidates for
-        the matching solution.
-        """
-        for row_key in self.cost_matrix:
-            # Get all values in this row
-            row_values = list(self.cost_matrix[row_key].values())
-
-            # If there are no values, skip this row
-            if not row_values:
-                continue
-
-            # Find minimum value in this row
-            min_value = min(row_values) if row_values else 0
-
-            # Subtract min value from each element in the row
-            for col_key in self.cost_matrix[row_key]:
-                self.cost_matrix[row_key][col_key] -= min_value
-
-        return self.cost_matrix
-
-    def step2(self):
-        """
-        Subtract the minimum value from each column of the cost matrix.
-
-        This creates at least one zero in each column, providing more
-        candidates for the matching solution.
-        """
-        # Get all unique column keys
-        all_cols = set()
-        for row in self.cost_matrix:
-            all_cols.update(self.cost_matrix[row].keys())
-
-        # For each column
-        for col_key in all_cols:
-            # Gather all values in this column
-            column_values = []
-            for row_key in self.cost_matrix:
-                if col_key in self.cost_matrix[row_key]:
-                    column_values.append(self.cost_matrix[row_key][col_key])
-
-            # If there are no values in this column, skip it
-            if not column_values:
-                continue
-
-            # Find minimum value in this column
-            min_value = min(column_values) if column_values else 0
-
-            # Subtract min value from each element in the column
-            for row_key in self.cost_matrix:
-                if col_key in self.cost_matrix[row_key]:
-                    self.cost_matrix[row_key][col_key] -= min_value
-
-        return self.cost_matrix
-
-    def find_maximum_zero_matching(self):
-        """
-        Find maximum matching of zeros in the cost matrix.
-
-        Uses a greedy initial assignment followed by augmentation through
-        alternating paths to maximize the number of matched rows and columns.
+        Builds a bipartite cost matrix using only cells present in valid pairs.
+        Applies the Hungarian algorithm to find optimal pairs.
 
         Returns:
         --------
-        tuple
-            (row_assignment, col_assignment) dictionaries mapping rows to columns
-            and columns to rows in the optimal matching
+        list[tuple[tuple[int, int], tuple[int, int]]]
+            A list of pairs of cells, each represented as a tuple of tuples.
+
+        Raises:
+        -------
+        ValueError
+            If the cost matrix is empty or if pairs are invalid.
         """
-        row_assignment = {}
-        col_assignment = {}
+        pairs = self.grid.all_pairs()
+        all_cells = list(set(cell for pair in pairs for cell in pair))
+        
+        if self.rules == "original rules":
+            # Split into even/odd based on coordinate parity
+            even_cells = []
+            odd_cells = []
+            for cell in all_cells:
+                if (cell[0] + cell[1]) % 2 == 0:
+                    even_cells.append(cell)
+                else:
+                    odd_cells.append(cell)
 
-        # Initial greedy assignment - only consider zero values
-        for row_key in self.cost_matrix:
-            for col_key, value in self.cost_matrix[row_key].items():
-                if value == 0 and col_key not in col_assignment:
-                    row_assignment[row_key] = col_key
-                    col_assignment[col_key] = row_key
-                    break
+            # Create mappings for matrix indices
+            even_to_idx = {cell: i for i, cell in enumerate(even_cells)}
+            odd_to_idx = {cell: j for j, cell in enumerate(odd_cells)}
 
-        # Try to improve the matching with augmenting paths
-        while True:
-            # Find an unmatched row
-            unmatched_row = None
-            for row in self.cost_matrix:
-                if row not in row_assignment:
-                    unmatched_row = row
-                    break
+            # Build cost matrix with valid pairs only and pad to square
+            even_count = len(even_cells)
+            odd_count = len(odd_cells)
+            max_dim = max(even_count, odd_count)
+            cost_matrix = np.zeros((max_dim, max_dim))
+            for u, v in pairs:
+                # Ensure u is even and v is odd
+                if (u[0] + u[1]) % 2 != 0:
+                    u, v = v, u
+                if u in even_to_idx and v in odd_to_idx:
+                    cost = self.grid.cost((u, v))
+                    weight = (
+                        cost - self.grid.value[u[0]][u[1]] - self.grid.value[v[0]][v[1]]
+                    )
+                    cost_matrix[even_to_idx[u], odd_to_idx[v]] = weight
 
-            if not unmatched_row:
-                break  # All rows are matched or no more rows can be matched
+            # Apply Hungarian algorithm on the padded square matrix
+            row_ind, col_ind = self.linear_sum_assignment(cost_matrix)
 
-            # Try to find an augmenting path starting from this row
-            path_found = self.find_augmenting_path(
-                unmatched_row, row_assignment, col_assignment
+            # Rebuild pairs from matrix indices, filtering valid entries
+            self.pairs = []
+            for i, j in zip(row_ind, col_ind):
+                if i < even_count and j < odd_count and cost_matrix[i][j] != 0:
+                    self.pairs.append((even_cells[i], odd_cells[j]))
+
+        elif self.rules == "new rules":
+            # Create a square cost matrix
+            num_cells = len(all_cells)
+            cost_matrix = np.zeros((num_cells, num_cells))
+
+            # Create a mapping from cell to matrix index
+            cell_to_idx = {cell: i for i, cell in enumerate(all_cells)}
+
+            # Fill the cost matrix
+            for u, v in pairs:
+                if u in cell_to_idx and v in cell_to_idx:
+                    cost = self.grid.cost((u, v))
+                    weight = (
+                        cost - self.grid.value[u[0]][u[1]] - self.grid.value[v[0]][v[1]]
+                    )
+                    cost_matrix[cell_to_idx[u], cell_to_idx[v]] = weight
+
+            # Apply Hungarian algorithm on the square matrix
+            row_ind, col_ind = self.linear_sum_assignment(cost_matrix)
+
+            # Rebuild pairs from matrix indices, filtering valid entries
+            self.pairs = []
+            for i, j in zip(row_ind, col_ind):
+                if cost_matrix[i][j] != 0:
+                    self.pairs.append((all_cells[i], all_cells[j]))
+
+        # Update the cells list based on the chosen pairs
+        self.cells = [cell for pair in self.pairs for cell in pair]
+        
+        return self.pairs
+
+    def linear_sum_assignment(self, cost: np.ndarray, maximize: bool = False) -> tuple[np.ndarray, np.ndarray]:
+        """
+        Solve the linear sum assignment problem.
+        
+        Parameters:
+        -----------
+        cost: np.ndarray
+            The cost matrix of the bipartite graph.
+        maximize: bool, optional
+            Calculates a maximum weight matching if true. Default is False.
+            
+        Returns:
+        --------
+        tuple[np.ndarray, np.ndarray]
+            An array of row indices and one of corresponding column indices giving the
+            optimal assignment. The cost of the assignment can be computed as
+            ``cost_matrix[row_ind, col_ind].sum()``. The row indices will be sorted; in
+            the case of a square cost matrix they will be equal to ``numpy.arange(cost_matrix.shape[0])``.
+            
+        Time Complexity:
+        ---------------
+        O(n³) where n is the dimension of the square cost matrix.
+        """
+        transpose = cost.shape[1] < cost.shape[0]
+
+        if cost.shape[0] == 0 or cost.shape[1] == 0:
+            return np.array([]), np.array([])
+
+        if transpose:
+            cost = cost.T
+
+        cost = (-cost if maximize else cost).astype(float)
+
+        u = np.full(cost.shape[0], 0.0, dtype=float)
+        v = np.full(cost.shape[1], 0.0, dtype=float)
+        path = np.full(cost.shape[1], -1, dtype=int)
+        col4row = np.full(cost.shape[0], -1, dtype=int)
+        row4col = np.full(cost.shape[1], -1, dtype=int)
+
+        for current_row in range(cost.shape[0]):
+            cost, u, v, path, row4col, col4row = self._lsa_body(
+                cost, u, v, path, row4col, col4row, current_row
             )
-            if not path_found:
-                break  # No more augmenting paths
 
-        return row_assignment, col_assignment
+        if transpose:
+            v = col4row.argsort()
+            return col4row[v], v
+        else:
+            return np.arange(cost.shape[0]), col4row
 
-    def find_augmenting_path(self, start_row, row_assignment, col_assignment):
+    def _find_short_augpath_while_body_inner_for(self, it: int, val: tuple) -> tuple:
         """
-        Find an augmenting path for zeros starting from a given row.
-
-        An augmenting path alternates between unmatched and matched edges,
-        starting at an unmatched row and ending at an unmatched column.
-
+        Helper method for finding shortest augmenting paths in the Hungarian algorithm.
+        
         Parameters:
         -----------
-        start_row: str
-            The starting row (an unmatched row) for the path search
-        row_assignment: dict
-            Current assignment of rows to columns
-        col_assignment: dict
-            Current assignment of columns to rows
-
-        Returns:
-        --------
-        bool
-            True if an augmenting path was found and used, False otherwise
-        """
-        # Track visited nodes and the path
-        visited_rows = set([start_row])
-        visited_cols = set()
-        parent = {start_row: None}  # Used to reconstruct the path
-
-        # Use a queue for breadth-first search
-        queue = [start_row]
-
-        while queue:
-            current_row = queue.pop(0)  # Dequeue
-
-            # Try all columns with zeros from this row
-            for col_key, value in self.cost_matrix[current_row].items():
-                # Only consider zeros for the augmenting path
-                if value == 0 and col_key not in visited_cols:
-                    visited_cols.add(col_key)
-                    parent[col_key] = current_row
-
-                    # If column is unmatched, we found an augmenting path
-                    if col_key not in col_assignment:
-                        self.augment_path(
-                            col_key, parent, row_assignment, col_assignment
-                        )
-                        return True
-
-                    # If column is matched, continue path through its matched row
-                    next_row = col_assignment[col_key]
-                    if next_row not in visited_rows:
-                        visited_rows.add(next_row)
-                        parent[next_row] = col_key
-                        queue.append(next_row)
-
-        # No augmenting path found
-        return False
-
-    def augment_path(self, end_col, parent, row_assignment, col_assignment):
-        """
-        Augment the matching along the found path.
-
-        This flips the matched/unmatched status of edges along the path, which
-        increases the size of the matching by one.
-
-        Parameters:
-        -----------
-        end_col: str
-            The unmatched column at the end of the augmenting path
-        parent: dict
-            Dictionary mapping nodes to their predecessors in the path
-        row_assignment: dict
-            Row to column assignments to update
-        col_assignment: dict
-            Column to row assignments to update
-        """
-        # Start at the unmatched column and work backwards
-        current = end_col
-
-        while True:
-            row = parent[current]  # Get the row that led to this column
-
-            # Unmatched column gets matched to its parent row
-            row_assignment[row] = current
-            col_assignment[current] = row
-
-            if parent[row] is None:
-                break  # Reached the starting unmatched row
-
-            # Move to the previous column in the path
-            current = parent[row]
-
-            # Remove previous matching for this column if it exists
-            if current in col_assignment:
-                prev_row = col_assignment[current]
-                if prev_row in row_assignment and row_assignment[prev_row] == current:
-                    del row_assignment[prev_row]
-
-            # This shouldn't be necessary with proper parent tracking, but just in case
-            if current not in parent:
-                break
-
-    def step3(self):
-        """
-        Find the minimum number of lines needed to cover all zeros in the cost matrix.
-
-        This step is crucial for determining if we have found an optimal assignment.
-        If the number of lines equals the matrix dimension, we're done.
-
+        it: int
+            Current iteration index
+        val: tuple
+            Tuple containing algorithm state variables
+            
         Returns:
         --------
         tuple
-            (marked_rows, marked_cols) sets containing covered rows and columns
+            Updated algorithm state variables
         """
-        # First find a maximum matching of zeros
-        self.row_assignment, self.col_assignment = self.find_maximum_zero_matching()
+        (
+            remaining,
+            min_value,
+            cost,
+            i,
+            u,
+            v,
+            shortest_path_costs,
+            path,
+            lowest,
+            row4col,
+            index,
+        ) = val
 
-        # Mark rows that have no assignment
-        unmarked_rows = set(self.cost_matrix.keys()) - set(self.row_assignment.keys())
-        marked_rows = set(unmarked_rows)  # Start with unassigned rows marked
-        marked_cols = set()
+        j = remaining[it]
+        r = min_value + cost[i, j] - u[i] - v[j]
 
-        # Iteratively mark columns and rows until no new marks can be added
-        while True:
-            # Mark columns that have zeros in marked rows
-            new_marked_cols = set()
-            for row in marked_rows:
-                for col, value in self.cost_matrix[row].items():
-                    if value == 0 and col not in marked_cols:
-                        new_marked_cols.add(col)
+        if r < shortest_path_costs[j]:
+            path[j] = i
+        shortest_path_costs[j] = min(shortest_path_costs[j], r)
 
-            if not new_marked_cols:
-                break  # No new columns to mark
+        if (shortest_path_costs[j] < lowest) or (
+            shortest_path_costs[j] == lowest and row4col[j] == -1
+        ):
+            index = it
+        lowest = min(lowest, shortest_path_costs[j])
 
-            marked_cols.update(new_marked_cols)
+        return (
+            remaining,
+            min_value,
+            cost,
+            i,
+            u,
+            v,
+            shortest_path_costs,
+            path,
+            lowest,
+            row4col,
+            index,
+        )
 
-            # Mark rows that have assignments in marked columns
-            new_marked_rows = set()
-            for col in new_marked_cols:
-                if (
-                    col in self.col_assignment
-                    and self.col_assignment[col] not in marked_rows
-                ):
-                    new_marked_rows.add(self.col_assignment[col])
-
-            if not new_marked_rows:
-                break  # No new rows to mark
-
-            marked_rows.update(new_marked_rows)
-
-        # The minimum line cover consists of:
-        # - Unmarked rows (all rows - marked rows)
-        # - Marked columns
-        self.marked_rows = set(self.cost_matrix.keys()) - marked_rows
-        self.marked_cols = marked_cols
-
-        return self.marked_rows, self.marked_cols
-
-    def step4(self):
+    def _find_short_augpath_while_body_tail(self, val: tuple) -> tuple:
         """
-        Check if the current assignment is optimal.
-
-        In a standard Hungarian algorithm, the assignment is optimal when the number
-        of covering lines equals the matrix dimension. However, for grid matching
-        with unmatchable cells, we need a different criterion.
-
-        Since some cells can never be matched (black cells or those with no valid pairs),
-        we check if the number of covering lines equals the size of the current assignment.
-        If no more augmenting paths can be found (handled in find_maximum_zero_matching),
-        and this condition is true, the assignment is optimal.
-
-        For large grids, we add a minimum iteration requirement to prevent premature termination.
-
+        Helper method for the tail part of processing in finding shortest augmenting paths.
+        
+        Parameters:
+        -----------
+        val: tuple
+            Tuple containing algorithm state variables
+            
         Returns:
         --------
-        bool
-            True if the assignment is optimal, False otherwise
+        tuple
+            Updated algorithm state variables
         """
-        # Count the total number of covering lines (marked rows + marked columns)
-        total_covering_lines = len(self.marked_rows) + len(self.marked_cols)
+        remaining, index, row4col, sink, i, SC, num_remaining = val
 
-        # Check if the total covering lines equals the number of assignments
-        # This is the König-Egerváry theorem: max matching size = min cover size
-        # The condition must be exactly equal to ensure we reach optimal solution
-        # We also check the iteration count to ensure we don't terminate too early
-        # We're comparing against the iteration_count attribute that is set in the run method
-        return total_covering_lines == len(self.row_assignment) and getattr(
-            self, "iteration_count", 0
-        ) >= min(5, len(self.cost_matrix) // 10)
+        j = remaining[index]
+        if row4col[j] == -1:
+            sink = j
+        else:
+            i = row4col[j]
 
-    def step5(self):
+        SC[j] = True
+        num_remaining -= 1
+        remaining[index] = remaining[num_remaining]
+
+        return remaining, index, row4col, sink, i, SC, num_remaining
+
+    def _find_short_augpath_while_body(self, val: tuple) -> tuple:
         """
-        Update the cost matrix to create new zeros.
-
-        When the assignment is not optimal, this step:
-        1. Finds the smallest uncovered value
-        2. Subtracts it from all uncovered rows
-        3. Adds it to all covered columns
-
-        This creates new zeros while preserving the existing assignment.
-
+        Main body of the algorithm for finding shortest augmenting paths.
+        
+        Parameters:
+        -----------
+        val: tuple
+            Tuple containing algorithm state variables
+            
         Returns:
         --------
-        dict
-            The updated cost matrix
+        tuple
+            Updated algorithm state variables
         """
-        # Find the minimum value in the uncovered part of the matrix
-        min_value = float("inf")
+        (
+            cost,
+            u,
+            v,
+            path,
+            row4col,
+            current_row,
+            min_value,
+            num_remaining,
+            remaining,
+            SR,
+            SC,
+            shortest_path_costs,
+            sink,
+        ) = val
 
-        for row_key in self.cost_matrix:
-            if row_key not in self.marked_rows:  # Only consider unmarked rows
-                for col_key, value in self.cost_matrix[row_key].items():
-                    if (
-                        col_key not in self.marked_cols
-                    ):  # Only consider unmarked columns
-                        if value < min_value:
-                            min_value = value
+        index = -1
+        lowest = np.inf
+        SR[current_row] = True
 
-        if min_value == float("inf") or min_value == 0:
-            # If we couldn't find a minimum value or it's already zero,
-            # add a small perturbation to break potential cycles
-            for row_key in self.cost_matrix:
-                if row_key not in self.marked_rows and self.cost_matrix[row_key]:
-                    for col_key in list(self.cost_matrix[row_key].keys()):
-                        if col_key not in self.marked_cols:
-                            self.cost_matrix[row_key][col_key] -= 0.001
-            return self.cost_matrix
+        for it in range(num_remaining):
+            (
+                remaining,
+                min_value,
+                cost,
+                current_row,
+                u,
+                v,
+                shortest_path_costs,
+                path,
+                lowest,
+                row4col,
+                index,
+            ) = self._find_short_augpath_while_body_inner_for(
+                it,
+                (
+                    remaining,
+                    min_value,
+                    cost,
+                    current_row,
+                    u,
+                    v,
+                    shortest_path_costs,
+                    path,
+                    lowest,
+                    row4col,
+                    index,
+                ),
+            )
 
-        # Subtract min_value from every uncovered element
-        for row_key in self.cost_matrix:
-            if row_key not in self.marked_rows:  # Unmarked row
-                for col_key in list(self.cost_matrix[row_key].keys()):
-                    if col_key not in self.marked_cols:  # Unmarked column
-                        self.cost_matrix[row_key][col_key] -= min_value
+        min_value = lowest
+        if min_value == np.inf:
+            sink = -1
 
-        # Add min_value to every element at intersection of marked row and marked column
-        for row_key in self.marked_rows:  # Marked row
-            for col_key in list(self.cost_matrix[row_key].keys()):
-                if col_key in self.marked_cols:  # Marked column
-                    self.cost_matrix[row_key][col_key] += min_value
-
-        return self.cost_matrix
-
-    def run(self):
-        """
-        Run the Hungarian algorithm to find the optimal assignment.
-
-        This implementation handles the special case of grid matching where:
-        1. Not all cells can be matched (e.g., black cells are unmatchable)
-        2. The objective is to maximize the number of matched cells
-           while minimizing the cost of those matches
-
-        The algorithm follows these steps:
-        1. Reduce the cost matrix by row and column to create zeros
-        2. Find a maximum assignment of zeros
-        3. Check if it's optimal using the modified criterion
-        4. If not optimal, create new zeros and repeat steps 2-3
-
-        Returns:
-        --------
-        list[tuple]
-            List of matched pairs in the format [(cell1, cell2), ...]
-
-        Time Complexity: O(n^3 * m^3)
-            Where n is the number of rows and m is the number of columns in the grid.
-            The Hungarian algorithm has a cubic complexity in terms of the size of the cost matrix,
-            which is O(n*m) × O(n*m) in our grid representation.
-        """
-        # Initialize cost matrix by reducing rows and columns
-        self.step1()
-        self.step2()
-
-        # Maximum number of iterations to prevent infinite loops
-        # Use a more reasonable maximum that's proportional to the size of the grid
-        max_iterations = min(100, self.grid.n * self.grid.m)
-        self.iteration_count = 0
-
-        # Keep track of best assignment found
-        best_assignment = {}
-        best_assignment_size = 0
-
-        # Iterate until optimal solution is found or max iterations reached
-        while self.iteration_count < max_iterations:
-            self.step3()
-
-            # Check if current assignment is better than best found
-            current_size = len(self.row_assignment)
-            if current_size > best_assignment_size:
-                best_assignment = self.row_assignment.copy()
-                best_assignment_size = current_size
-
-            if self.step4():
-                # Optimal solution found according to our modified criterion
-                # We add 1 to iteration_count for display purposes to avoid showing "0 iterations"
-                print(
-                    f"Optimal solution found after {self.iteration_count + 1} iterations"
+        if sink == -1:
+            remaining, index, row4col, sink, current_row, SC, num_remaining = (
+                self._find_short_augpath_while_body_tail(
+                    (remaining, index, row4col, sink, current_row, SC, num_remaining)
                 )
-                break
-
-            self.step5()
-            self.iteration_count += 1
-
-        # If we reached max iterations without finding an optimal solution
-        if self.iteration_count >= max_iterations:
-            print(
-                f"Warning: Max iterations ({max_iterations}) reached without optimal solution"
             )
 
-            # Use the best assignment found if it's better than the final one
-            if best_assignment_size > len(self.row_assignment):
-                print(f"Using best assignment found (size {best_assignment_size})")
-                self.row_assignment = best_assignment
+        return (
+            cost,
+            u,
+            v,
+            path,
+            row4col,
+            current_row,
+            min_value,
+            num_remaining,
+            remaining,
+            SR,
+            SC,
+            shortest_path_costs,
+            sink,
+        )
 
-        # Extract the matching from row_assignment
-        matching_pairs = []
-        valid_pair_count = 0
-        used_pairs = set()  # To track pairs we've already added (in either direction)
+    def _find_short_augpath_while_cond(self, val: tuple) -> bool:
+        """
+        Condition check for continuing the search for shortest augmenting paths.
+        
+        Parameters:
+        -----------
+        val: tuple
+            Tuple containing algorithm state variables
+            
+        Returns:
+        --------
+        bool
+            True if the search should continue, False otherwise
+        """
+        sink = val[-1]
+        return sink == -1
 
-        # Use the final row_assignment to construct the matching
-        for row_key, col_key in self.row_assignment.items():
-            # Convert from 'cell_i_j' format to (i,j) coordinates
-            row_coords = tuple(map(int, row_key.split("_")[1:]))
-            col_coords = tuple(map(int, col_key.split("_")[1:]))
+    def _find_augmenting_path(self, cost: np.ndarray, u: np.ndarray, 
+                             v: np.ndarray, path: np.ndarray, 
+                             row4col: np.ndarray, current_row: int) -> tuple:
+        """
+        Find an augmenting path in the Hungarian algorithm.
+        
+        Parameters:
+        -----------
+        cost: np.ndarray
+            Cost matrix
+        u: np.ndarray
+            Row potential vector
+        v: np.ndarray
+            Column potential vector
+        path: np.ndarray
+            Path array
+        row4col: np.ndarray
+            Row assignments for each column
+        current_row: int
+            Current row being processed
+            
+        Returns:
+        --------
+        tuple
+            Sink node, minimum value, and other algorithm state variables
+        """
+        min_value = 0
+        num_remaining = cost.shape[1]
+        remaining = np.arange(cost.shape[1])[::-1]
 
-            # Check that this is a valid pair (cells must be adjacent)
-            if abs(row_coords[0] - col_coords[0]) + abs(
-                row_coords[1] - col_coords[1]
-            ) == 1 and not self.grid.is_pair_forbidden((row_coords, col_coords)):
-                # Create a canonical representation of the pair (sort by coordinates)
-                canonical_pair = tuple(sorted([row_coords, col_coords]))
+        SR = np.full(cost.shape[0], False, dtype=bool)
+        SC = np.full(cost.shape[1], False, dtype=bool)
 
-                # Only add the pair if we haven't seen it before
-                if canonical_pair not in used_pairs:
-                    matching_pairs.append((row_coords, col_coords))
-                    used_pairs.add(canonical_pair)
-                    valid_pair_count += 1
+        shortest_path_costs = np.full(cost.shape[1], np.inf)
+        sink = -1
 
-        print(f"Hungarian algorithm found {valid_pair_count} valid pairs")
+        while self._find_short_augpath_while_cond(
+            (
+                cost,
+                u,
+                v,
+                path,
+                row4col,
+                current_row,
+                min_value,
+                num_remaining,
+                remaining,
+                SR,
+                SC,
+                shortest_path_costs,
+                sink,
+            )
+        ):
+            (
+                cost,
+                u,
+                v,
+                path,
+                row4col,
+                current_row,
+                min_value,
+                num_remaining,
+                remaining,
+                SR,
+                SC,
+                shortest_path_costs,
+                sink,
+            ) = self._find_short_augpath_while_body(
+                (
+                    cost,
+                    u,
+                    v,
+                    path,
+                    row4col,
+                    current_row,
+                    min_value,
+                    num_remaining,
+                    remaining,
+                    SR,
+                    SC,
+                    shortest_path_costs,
+                    sink,
+                )
+            )
 
-        self.pairs = matching_pairs
+        return sink, min_value, SR, SC, shortest_path_costs, path
 
-        # Update the cells list
-        self.cells = []
-        for pair in self.pairs:
-            self.cells.append(pair[0])
-            self.cells.append(pair[1])
+    def _augment_previous_while_body(self, val: tuple) -> tuple:
+        """
+        Process for augmenting the previous matching along the found path.
+        
+        Parameters:
+        -----------
+        val: tuple
+            Tuple containing algorithm state variables
+            
+        Returns:
+        --------
+        tuple
+            Updated algorithm state variables
+        """
+        path, sink, row4col, col4row, current_row, _ = val
 
-        return matching_pairs
+        i = path[sink]
+        row4col[sink] = i
+
+        col4row[i], sink = sink, col4row[i]
+        breakvar = i == current_row
+
+        return path, sink, row4col, col4row, current_row, breakvar
+
+    def _augment_previous_while_cond(self, val: tuple) -> bool:
+        """
+        Condition check for continuing the augmentation process.
+        
+        Parameters:
+        -----------
+        val: tuple
+            Tuple containing algorithm state variables
+            
+        Returns:
+        --------
+        bool
+            True if the augmentation should continue, False otherwise
+        """
+        breakvar = val[-1]
+        return not breakvar
+
+    def _lsa_body(self, cost: np.ndarray, u: np.ndarray, v: np.ndarray, 
+                 path: np.ndarray, row4col: np.ndarray, 
+                 col4row: np.ndarray, current_row: int) -> tuple:
+        """
+        Main body of the linear sum assignment algorithm (Hungarian algorithm).
+        
+        Parameters:
+        -----------
+        cost: np.ndarray
+            Cost matrix
+        u: np.ndarray
+            Row potential vector
+        v: np.ndarray
+            Column potential vector
+        path: np.ndarray
+            Path array
+        row4col: np.ndarray
+            Row assignments for each column
+        col4row: np.ndarray
+            Column assignments for each row
+        current_row: int
+            Current row being processed
+            
+        Returns:
+        --------
+        tuple
+            Updated algorithm state variables
+        """
+        sink, min_value, SR, SC, shortest_path_costs, path = self._find_augmenting_path(
+            cost, u, v, path, row4col, current_row
+        )
+
+        u[current_row] += min_value
+        mask = SR & (np.arange(cost.shape[0]) != current_row)
+        u += mask * (min_value - shortest_path_costs[col4row])
+
+        mask = SC
+        v += mask * (shortest_path_costs - min_value)
+
+        breakvar = False
+        while self._augment_previous_while_cond(
+            (path, sink, row4col, col4row, current_row, breakvar)
+        ):
+            path, sink, row4col, col4row, current_row, breakvar = (
+                self._augment_previous_while_body(
+                    (path, sink, row4col, col4row, current_row, breakvar)
+                )
+            )
+
+        return cost, u, v, path, row4col, col4row
