@@ -92,54 +92,58 @@ class SolverEmpty(Solver):
 
 class SolverGreedy(Solver):
     """
-    A greedy solver that chooses the cheapest pair at each step.
+    Implémentation gloutonne du solveur.
 
-    This implementation sorts all possible pairs by cost and iteratively
-    selects the cheapest available pair, making sure not to reuse any cells.
+    L'algorithme trie les paires par leur coût et sélectionne itérativement la paire
+    la moins coûteuse qui n'utilise pas de cellules déjà choisies.
     """
 
     def run(self) -> list[list[tuple[int, int]]]:
         """
-        Runs the greedy solver.
+        Exécute le solveur glouton.
 
-        The algorithm:
-        1. Sort all valid pairs by cost
-        2. Iteratively select the cheapest pair that doesn't reuse cells
-        3. Update the list of chosen pairs and cells
+        L'algorithme fonctionne comme suit:
+        1. Trie toutes les paires valides par coût croissant
+        2. Sélectionne itérativement la paire la moins coûteuse qui n'utilise pas de cellules déjà choisies
+        3. Met à jour la liste des paires et des cellules choisies
 
-        Returns:
+        Retourne:
         --------
         list[list[tuple[int, int]]]
-            The list of chosen pairs in the format [[(i1, j1), (i2, j2)], ...]
+            La liste des paires choisies au format [[(i1, j1), (i2, j2)], ...]
 
-        Time Complexity: O(p^2)
-            Where p is the number of valid pairs in the grid (which is O(n*m) in the worst case).
-            The algorithm requires sorting all pairs O(p log p) and then for each pair,
-            it may need to check against all previous pairs O(p).
+        Complexité temporelle: O(p^2)
+            Où p est le nombre de paires valides dans la grille (O(n*m) dans le pire cas).
+            L'algorithme nécessite le tri de toutes les paires O(p log p) puis pour chaque paire,
+            il peut nécessiter une vérification contre toutes les paires précédentes O(p).
         """
         chosen_pairs = self.pairs
         chosen_cells = self.cells
+        
+        # Récupération et tri des paires par coût croissant
         all_pairs_sorted = self.grid.all_pairs().copy()
         all_pairs_sorted.sort(key=self.grid.cost)
         i = 0
 
+        # Tant qu'il reste des paires à considérer
         while len(all_pairs_sorted) > 0:
             i += 1
+            # Filtrage des paires qui utilisent des cellules déjà choisies
             filtered_list = []
             for pair in all_pairs_sorted:
                 if pair[0] not in chosen_cells and pair[1] not in chosen_cells:
                     filtered_list.append(pair)
 
+            # Si on a trouvé au moins une paire valide
             if len(filtered_list) != 0:
+                # Sélection de la paire la moins coûteuse
                 cheapest_pair = filtered_list.pop(0)
                 chosen_pairs.append(cheapest_pair)
                 chosen_cells.append(cheapest_pair[0])
                 chosen_cells.append(cheapest_pair[1])
                 cost_cheapest_pair = self.grid.cost(cheapest_pair)
-                print(
-                    f"The cost of the chosen pair (which is the cheapest) is : {cost_cheapest_pair}"
-                )
 
+            # Mise à jour de la liste des paires à considérer
             all_pairs_sorted = filtered_list
 
         self.pairs = chosen_pairs

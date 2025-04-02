@@ -1,54 +1,52 @@
 """
-This is the grid module. It contains the Grid class and its associated methods.
+Module qui contient la classe Grid et ses méthodes associées pour
+représenter et manipuler une grille de jeu.
 """
 
 import os
 import matplotlib.pyplot as plt
 
-# Formation du binome: ensaeProg25Binome (en objet)
-# Rendu : ensaeProg25Rendu (en objet)
-# mail: ziyad.benomar@ensae.fr
+# Matrices de compatibilité des couleurs pour les paires de cellules
+# Une valeur de 1 indique que les couleurs sont compatibles, 0 sinon
+# Indices des couleurs: 0=blanc, 1=rouge, 2=bleu, 3=vert, 4=noir
+BLANC_COMBINAISON_OK = [1, 1, 1, 1, 0]  # Blanc compatible avec tout sauf noir
+ROUGE_COMBINAISON_OK = [1, 1, 1, 0, 0]  # Rouge compatible avec blanc, rouge, bleu
+BLEU_COMBINAISON_OK = [1, 1, 1, 0, 0]   # Bleu compatible avec blanc, rouge, bleu
+VERT_COMBINAISON_OK = [1, 0, 0, 1, 0]   # Vert compatible avec blanc et vert
+NOIR_COMBINAISON_OK = [0, 0, 0, 0, 0]   # Noir n'est compatible avec aucune couleur
 
-
-BlancCombinaisonOk = [1, 1, 1, 1, 0]
-RougeCombinaisonOk = [1, 1, 1, 0, 0]
-BleuCombinaisonOk = [1, 1, 1, 0, 0]
-VertCombinaisonOk = [1, 0, 0, 1, 0]
-NoirCombinaisonOk = [0, 0, 0, 0, 0]
-
-MatriceCouleurOk = [
-    BlancCombinaisonOk,
-    RougeCombinaisonOk,
-    BleuCombinaisonOk,
-    VertCombinaisonOk,
-    NoirCombinaisonOk,
+MATRICE_COULEUR_OK = [
+    BLANC_COMBINAISON_OK,
+    ROUGE_COMBINAISON_OK,
+    BLEU_COMBINAISON_OK,
+    VERT_COMBINAISON_OK,
+    NOIR_COMBINAISON_OK,
 ]
 
 
 class Grid:
     """
-    A class representing the grid.
+    Classe représentant la grille de jeu.
 
-    Attributes:
+    Attributs:
     -----------
     n: int
-        Number of rows in the grid
+        Nombre de lignes dans la grille
     m: int
-        Number of columns in the grid
+        Nombre de colonnes dans la grille
     color: list[list[int]]
-        The color of each grid cell: color[i][j] is the color value in the cell (i, j)
-        , i.e., in the i-th row and j-th column.
-        Note: rows are numbered 0..n-1 and columns are numbered 0..m-1.
+        La couleur de chaque cellule: color[i][j] est la valeur de couleur de la cellule (i, j)
+        Les lignes sont numérotées de 0 à n-1 et les colonnes de 0 à m-1.
     value: list[list[int]]
-        The value of each grid cell: value[i][j] is the value in the cell (i, j)
-        , i.e., in the i-th row and j-th column.
-        Note: rows are numbered 0..n-1 and columns are numbered 0..m-1.
+        La valeur de chaque cellule: value[i][j] est la valeur de la cellule (i, j)
+        Les lignes sont numérotées de 0 à n-1 et les colonnes de 0 à m-1.
     colors_list: list[str]
-        The mapping between the value of self.color[i][j] and the corresponding color
+        Correspondance entre la valeur numérique des couleurs et leur représentation
+        0="w" (blanc), 1="r" (rouge), 2="b" (bleu), 3="g" (vert), 4="k" (noir)
     cells: list[list[Cell]]
-        A 2D list of Cell objects, accessible by coordinates cells[i][j]
+        Liste 2D d'objets Cell, accessibles par leurs coordonnées cells[i][j]
     cells_list: list[Cell]
-        A flattened list of all Cell objects in the grid
+        Liste à plat de tous les objets Cell dans la grille
     """
 
     def __init__(
@@ -59,192 +57,211 @@ class Grid:
         value: list[list[int]] = None,
     ) -> None:
         """
-        Initializes the grid.
+        Initialise la grille de jeu.
 
-        Parameters:
+        Paramètres:
         -----------
         n: int
-            Number of rows in the grid
+            Nombre de lignes dans la grille
         m: int
-            Number of columns in the grid
-        color: list[list[int]], optional
-            The grid cells colors. Default is None
-            (then the grid is created with each cell having color 0, i.e., white).
-        value: list[list[int]], optional
-            The grid cells values. Default is None
-            (then the grid is created with each cell having value 1).
-
-        The object created has an attribute colors_list: list[str],
-        which is the mapping between the value of self.color[i][j] and the corresponding color
+            Nombre de colonnes dans la grille
+        color: list[list[int]], optionnel
+            Couleurs des cellules de la grille. Par défaut, toutes les cellules sont 
+            initialisées à la couleur 0 (blanc).
+        value: list[list[int]], optionnel
+            Valeurs des cellules de la grille. Par défaut, toutes les cellules ont 
+            une valeur de 1.
         """
         self.n = n
         self.m = m
+        
+        # Initialisation des couleurs (valeur par défaut: blanc)
         if not color:
             color = [[0 for j in range(m)] for i in range(n)]
         self.color = color
+        
+        # Initialisation des valeurs (valeur par défaut: 1)
         if not value:
             value = [[1 for j in range(m)] for i in range(n)]
         self.value = value
+        
+        # Correspondance codes couleur => représentation
         self.colors_list: list[str] = ["w", "r", "b", "g", "k"]
+        
+        # Les listes de cellules seront initialisées par cell_init()
         self.cells_list: list[Cell] = []
         self.cells: list[list[Cell]] = []
 
     def __str__(self) -> str:
         """
-        Returns a string representation of the grid showing colors and values.
+        Retourne une représentation textuelle de la grille montrant les couleurs et les valeurs.
 
-        Returns:
+        Retourne:
         --------
         str
-            A formatted string representation of the grid
+            Une chaîne formatée représentant la grille
         """
-        output = f"The grid is {self.n} x {self.m}. It has the following colors:\n"
+        output = f"Grille de taille {self.n} x {self.m}. Couleurs:\n"
         for i in range(self.n):
             output += f"{[self.colors_list[self.color[i][j]] for j in range(self.m)]}\n"
-        output += "and the following values:\n"
+        output += "Valeurs:\n"
         for i in range(self.n):
             output += f"{self.value[i]}\n"
         return output
 
     def __repr__(self) -> str:
         """
-        Returns a concise representation of the grid with number of rows and columns.
+        Retourne une représentation concise de la grille avec son nombre de lignes et colonnes.
 
-        Returns:
+        Retourne:
         --------
         str
-            A string in the format "<grid.Grid: n=X, m=Y>"
+            Une chaîne au format "<grid.Grid: n=X, m=Y>"
         """
         return f"<grid.Grid: n={self.n}, m={self.m}>"
 
     def plot(self) -> None:
         """
-        Plots a visual representation of the grid using matplotlib.
+        Affiche une représentation visuelle de la grille en utilisant matplotlib.
 
-        Creates a colored grid visualization where:
-        - Each cell is colored according to its color attribute
-        - The cell's numerical value is displayed in the center
-        - Grid lines are drawn between cells
+        Crée une visualisation colorée de la grille où:
+        - Chaque cellule est colorée selon son attribut de couleur
+        - La valeur numérique de la cellule est affichée au centre
+        - Des lignes de grille sont tracées entre les cellules
 
-        Returns:
+        Retourne:
         --------
         None
         """
         ax = plt.subplots()[1]
 
+        # Définition des couleurs RGB pour chaque type de cellule
         rgb_tab = [
-            (255, 255, 255),  # White
-            (208, 0, 0),  # Red
-            (68, 114, 196),  # Blue
-            (112, 173, 71),  # Green
-            (0, 0, 0),  # Black
+            (255, 255, 255),  # Blanc
+            (208, 0, 0),      # Rouge
+            (68, 114, 196),   # Bleu
+            (112, 173, 71),   # Vert
+            (0, 0, 0),        # Noir
         ]
 
+        # Création de la carte des couleurs
         color_map = []
         for i in range(self.n):
             color_map.append([])
             for j in range(self.m):
                 color_map[i].append(rgb_tab[self.color[i][j]])
                 plt.text(j, i, self.value[i][j], ha="center", va="center")
+        
+        # Configuration des paramètres d'affichage
         ax.tick_params(length=0, labelsize="large", pad=10)
 
+        # Affichage de la grille colorée
         ax.matshow(color_map)
+        
+        # Ajout des lignes de grille
         plt.gca().set_xticks([x - 0.5 for x in range(1, self.m)], minor="true")
         plt.gca().set_yticks([x - 0.5 for x in range(1, self.m)], minor="true")
         ax.grid(visible=True, which="minor")
+        
         plt.show()
 
     def is_forbidden(self, i: int, j: int) -> bool:
         """
-        Returns True if the cell (i, j) is black and False otherwise.
+        Vérifie si la cellule (i, j) est noire (interdite) ou non.
 
-        Parameters:
+        Paramètres:
         -----------
         i: int
-            The row index of the cell
+            L'indice de ligne de la cellule
         j: int
-            The column index of the cell
+            L'indice de colonne de la cellule
 
-        Returns:
+        Retourne:
         --------
         bool
-            True if the cell is black (forbidden), False otherwise
+            True si la cellule est noire (interdite), False sinon
 
-        Raises:
+        Lève:
         -------
         IndexError
-            If the cell coordinates are out of bounds
+            Si les coordonnées de la cellule sont hors limites
         """
         if i < 0 or i >= self.n or j < 0 or j >= self.m:
-            raise IndexError("Cell coordinates out of bounds")
+            raise IndexError("Les coordonnées de la cellule sont hors limites")
 
         return self.get_coordinate_color(i, j) == "k"
 
     def is_pair_forbidden(self, pair: list[tuple[int, int]]) -> bool:
         """
-        Returns True if the pair is forbidden and False otherwise.
-        A bit more complex and relevant than simply checking if one of the cells is black.
+        Vérifie si une paire de cellules est interdite selon les règles de compatibilité des couleurs.
 
-        Parameters:
+        Paramètres:
         -----------
         pair: list[tuple[int, int]]
-            A pair of cells represented as a list of two tuples [(i1, j1), (i2, j2)]
-            where (i1, j1) are the coordinates of the first cell and
-            (i2, j2) are the coordinates of the second cell
+            Une paire de cellules représentée par une liste de deux tuples [(i1, j1), (i2, j2)]
+            où (i1, j1) sont les coordonnées de la première cellule et
+            (i2, j2) sont les coordonnées de la deuxième cellule
 
-        Returns:
+        Retourne:
         --------
         bool
-            True if the pair is forbidden, False otherwise
+            True si la paire est interdite, False sinon
 
-        Raises:
+        Lève:
         -------
         IndexError
-            If either cell's coordinates are out of bounds
+            Si les coordonnées de l'une des cellules sont hors limites
             
-        Time Complexity: O(1)
-            Constant time as it only involves direct index lookup and matrix access.
+        Complexité temporelle: O(1)
+            Temps constant car implique seulement des accès directs aux indices et à la matrice.
         """
+        # Vérification des limites pour la première cellule
         if (
             pair[0][0] < 0
             or pair[0][0] >= self.n
             or pair[0][1] < 0
             or pair[0][1] >= self.m
         ):
-            raise IndexError("First cell coordinates out of bounds")
+            raise IndexError("Les coordonnées de la première cellule sont hors limites")
+        
+        # Vérification des limites pour la deuxième cellule
         if (
             pair[1][0] < 0
             or pair[1][0] >= self.n
             or pair[1][1] < 0
             or pair[1][1] >= self.m
         ):
-            raise IndexError("Second cell coordinates out of bounds")
+            raise IndexError("Les coordonnées de la deuxième cellule sont hors limites")
 
+        # Récupération des couleurs des cellules
         couleur1 = self.color[pair[0][0]][pair[0][1]]
         couleur2 = self.color[pair[1][0]][pair[1][1]]
-        return not MatriceCouleurOk[couleur1][couleur2]
+        
+        # Vérification de la compatibilité des couleurs à l'aide de la matrice de compatibilité
+        return not MATRICE_COULEUR_OK[couleur1][couleur2]
 
     def cost(self, pair: tuple[tuple[int]]) -> int:
         """
-        Returns the cost of a pair
+        Calcule le coût d'une paire de cellules.
 
-        Parameters:
+        Paramètres:
         -----------
         pair: tuple[tuple[int]]
-            A pair in the format ((i1, j1), (i2, j2))
+            Une paire au format ((i1, j1), (i2, j2))
 
-        Output:
+        Retourne:
         -----------
         cost: int
-            the cost of the pair defined as the absolute value
-            of the difference between their values
+            Le coût de la paire, défini comme la valeur absolue
+            de la différence entre les valeurs des deux cellules
             
-        Time Complexity: O(1)
-            Constant time operation as it only involves direct lookup of values and simple calculation.
+        Complexité temporelle: O(1)
+            Opération en temps constant car implique seulement des accès
+            directs aux valeurs et un calcul simple.
         """
 
         if self.is_pair_forbidden(pair):
-            return 0  # Essayer de prévenir d'éventuelles erreurs
+            return 0  # Évite les erreurs pour les paires interdites
 
         valeur1 = self.get_coordinate_value(pair[0][0], pair[0][1])
         valeur2 = self.get_coordinate_value(pair[1][0], pair[1][1])
@@ -253,27 +270,32 @@ class Grid:
 
     def all_pairs(self) -> list[list[tuple[int, int]]]:
         """
-        Returns a list of all pairs of cells that can be taken together.
+        Retourne une liste de toutes les paires de cellules qui peuvent être prises ensemble.
 
-        Returns:
+        Cette méthode parcourt la grille et identifie toutes les paires de cellules adjacentes
+        qui sont compatibles selon les règles de couleur.
+
+        Retourne:
         --------
         list[list[tuple[int, int]]]
-            A list of valid cell pairs, where each pair is represented as a list of two tuples
-            [(i1, j1), (i2, j2)], where (i1, j1) and (i2, j2) are the coordinates of two
-            adjacent cells that can be paired together.
+            Une liste de paires valides, où chaque paire est représentée par une liste de deux tuples
+            [(i1, j1), (i2, j2)], où (i1, j1) et (i2, j2) sont les coordonnées de deux
+            cellules adjacentes qui peuvent être appariées.
             
-        Time Complexity: O(n*m)
-            Where n is the number of rows and m is the number of columns in the grid.
-            The method iterates over all cells and checks their valid adjacent neighbors.
+        Complexité temporelle: O(n*m)
+            Où n est le nombre de lignes et m le nombre de colonnes dans la grille.
         """
         liste_of_pairs = []
+        # Parcours de toutes les cellules de la grille
         for i in range(self.n):
             for j in range(self.m):
-                if i + 1 != self.n:
+                # Vérification des adjacences verticales (cellule en dessous)
+                if i + 1 < self.n:
                     paire = [(i, j), (i + 1, j)]
                     if not self.is_pair_forbidden(paire):
                         liste_of_pairs.append(paire)
-                if j + 1 != self.m:
+                # Vérification des adjacences horizontales (cellule à droite)
+                if j + 1 < self.m:
                     paire = [(i, j), (i, j + 1)]
                     if not self.is_pair_forbidden(paire):
                         liste_of_pairs.append(paire)
@@ -322,33 +344,32 @@ class Grid:
 
     def cell_init(self) -> None:
         """
-        Initializes all the cells of the Grid.
+        Initialise toutes les cellules de la grille.
 
-        This method creates Cell objects for each position in the grid and stores them
-        in two different structures:
-        - self.cells: A 2D list where cells can be accessed by their coordinates
-        - self.cells_list: A flattened list containing all cells
+        Cette méthode crée des objets Cell pour chaque position dans la grille et les stocke
+        dans deux structures différentes :
+        - self.cells : Une liste 2D où les cellules sont accessibles par leurs coordonnées
+        - self.cells_list : Une liste à plat contenant toutes les cellules
 
-        Returns:
+        Retourne:
         --------
         None
         
-        Time Complexity: O(n*m)
-            Where n is the number of rows and m is the number of columns in the grid.
-            The method creates a Cell object for each position in the grid.
+        Complexité temporelle: O(n*m)
+            Où n est le nombre de lignes et m le nombre de colonnes dans la grille.
         """
+        # Initialisation de la liste 2D des cellules
+        self.cells = []
         for i in range(self.n):
-            self.cells.append([])
+            ligne = []
             for j in range(self.m):
-                self.cells[i].append(Cell(i, j, self.color[i][j], self.value[i][j]))
+                ligne.append(Cell(i, j, self.color[i][j], self.value[i][j]))
+            self.cells.append(ligne)
 
+        # Création de la liste à plat des cellules
         self.cells_list = [
-            Cell(i, j, self.color[i][j], self.value[i][j])
-            for i in range(self.n)
-            for j in range(self.m)
+            self.cells[i][j] for i in range(self.n) for j in range(self.m)
         ]
-
-        # Vraiment pas besoin de DFS ou BFS.....
 
     @classmethod
     def grid_from_file(cls, file_name: str, read_values: bool = False) -> "Grid":
