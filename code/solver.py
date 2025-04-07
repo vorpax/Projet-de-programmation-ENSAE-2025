@@ -119,7 +119,7 @@ class SolverGreedy(Solver):
         """
         chosen_pairs = self.pairs
         chosen_cells = self.cells
-        
+
         # Récupération et tri des paires par coût croissant
         all_pairs_sorted = self.grid.all_pairs().copy()
         all_pairs_sorted.sort(key=self.grid.cost)
@@ -154,8 +154,6 @@ class SolverGreedy(Solver):
             self.cells.append(pair[1])
 
         return chosen_pairs
-
-
 
 
 class SolverFulkerson(Solver):
@@ -406,11 +404,11 @@ class SolverFulkerson(Solver):
 class SolverHungarian(Solver):
     """
     A solver implementing the Hungarian algorithm for minimum-cost bipartite matching.
-    
+
     This implementation uses the Hungarian algorithm to find an optimal assignment
     that maximizes the total weight of the matching in a bipartite graph representation
     of the grid.
-    
+
     Attributes:
     -----------
     grid: Grid
@@ -452,7 +450,7 @@ class SolverHungarian(Solver):
         """
         pairs = self.grid.all_pairs()
         all_cells = list(set(cell for pair in pairs for cell in pair))
-        
+
         if self.rules == "original rules":
             # Split into even/odd based on coordinate parity
             even_cells = []
@@ -520,20 +518,22 @@ class SolverHungarian(Solver):
 
         # Update the cells list based on the chosen pairs
         self.cells = [cell for pair in self.pairs for cell in pair]
-        
+
         return self.pairs
 
-    def linear_sum_assignment(self, cost: np.ndarray, maximize: bool = False) -> tuple[np.ndarray, np.ndarray]:
+    def linear_sum_assignment(
+        self, cost: np.ndarray, maximize: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Solve the linear sum assignment problem.
-        
+
         Parameters:
         -----------
         cost: np.ndarray
             The cost matrix of the bipartite graph.
         maximize: bool, optional
             Calculates a maximum weight matching if true. Default is False.
-            
+
         Returns:
         --------
         tuple[np.ndarray, np.ndarray]
@@ -541,7 +541,7 @@ class SolverHungarian(Solver):
             optimal assignment. The cost of the assignment can be computed as
             ``cost_matrix[row_ind, col_ind].sum()``. The row indices will be sorted; in
             the case of a square cost matrix they will be equal to ``numpy.arange(cost_matrix.shape[0])``.
-            
+
         Time Complexity:
         ---------------
         O(n³) where n is the dimension of the square cost matrix.
@@ -576,14 +576,14 @@ class SolverHungarian(Solver):
     def _find_short_augpath_while_body_inner_for(self, it: int, val: tuple) -> tuple:
         """
         Helper method for finding shortest augmenting paths in the Hungarian algorithm.
-        
+
         Parameters:
         -----------
         it: int
             Current iteration index
         val: tuple
             Tuple containing algorithm state variables
-            
+
         Returns:
         --------
         tuple
@@ -633,12 +633,12 @@ class SolverHungarian(Solver):
     def _find_short_augpath_while_body_tail(self, val: tuple) -> tuple:
         """
         Helper method for the tail part of processing in finding shortest augmenting paths.
-        
+
         Parameters:
         -----------
         val: tuple
             Tuple containing algorithm state variables
-            
+
         Returns:
         --------
         tuple
@@ -661,12 +661,12 @@ class SolverHungarian(Solver):
     def _find_short_augpath_while_body(self, val: tuple) -> tuple:
         """
         Main body of the algorithm for finding shortest augmenting paths.
-        
+
         Parameters:
         -----------
         val: tuple
             Tuple containing algorithm state variables
-            
+
         Returns:
         --------
         tuple
@@ -752,12 +752,12 @@ class SolverHungarian(Solver):
     def _find_short_augpath_while_cond(self, val: tuple) -> bool:
         """
         Condition check for continuing the search for shortest augmenting paths.
-        
+
         Parameters:
         -----------
         val: tuple
             Tuple containing algorithm state variables
-            
+
         Returns:
         --------
         bool
@@ -766,12 +766,18 @@ class SolverHungarian(Solver):
         sink = val[-1]
         return sink == -1
 
-    def _find_augmenting_path(self, cost: np.ndarray, u: np.ndarray, 
-                             v: np.ndarray, path: np.ndarray, 
-                             row4col: np.ndarray, current_row: int) -> tuple:
+    def _find_augmenting_path(
+        self,
+        cost: np.ndarray,
+        u: np.ndarray,
+        v: np.ndarray,
+        path: np.ndarray,
+        row4col: np.ndarray,
+        current_row: int,
+    ) -> tuple:
         """
         Find an augmenting path in the Hungarian algorithm.
-        
+
         Parameters:
         -----------
         cost: np.ndarray
@@ -786,7 +792,7 @@ class SolverHungarian(Solver):
             Row assignments for each column
         current_row: int
             Current row being processed
-            
+
         Returns:
         --------
         tuple
@@ -856,12 +862,12 @@ class SolverHungarian(Solver):
     def _augment_previous_while_body(self, val: tuple) -> tuple:
         """
         Process for augmenting the previous matching along the found path.
-        
+
         Parameters:
         -----------
         val: tuple
             Tuple containing algorithm state variables
-            
+
         Returns:
         --------
         tuple
@@ -880,12 +886,12 @@ class SolverHungarian(Solver):
     def _augment_previous_while_cond(self, val: tuple) -> bool:
         """
         Condition check for continuing the augmentation process.
-        
+
         Parameters:
         -----------
         val: tuple
             Tuple containing algorithm state variables
-            
+
         Returns:
         --------
         bool
@@ -894,12 +900,19 @@ class SolverHungarian(Solver):
         breakvar = val[-1]
         return not breakvar
 
-    def _lsa_body(self, cost: np.ndarray, u: np.ndarray, v: np.ndarray, 
-                 path: np.ndarray, row4col: np.ndarray, 
-                 col4row: np.ndarray, current_row: int) -> tuple:
+    def _lsa_body(
+        self,
+        cost: np.ndarray,
+        u: np.ndarray,
+        v: np.ndarray,
+        path: np.ndarray,
+        row4col: np.ndarray,
+        col4row: np.ndarray,
+        current_row: int,
+    ) -> tuple:
         """
         Main body of the linear sum assignment algorithm (Hungarian algorithm).
-        
+
         Parameters:
         -----------
         cost: np.ndarray
@@ -916,7 +929,7 @@ class SolverHungarian(Solver):
             Column assignments for each row
         current_row: int
             Current row being processed
-            
+
         Returns:
         --------
         tuple
