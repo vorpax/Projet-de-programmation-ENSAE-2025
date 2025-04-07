@@ -52,6 +52,8 @@ class TestGrid(unittest.TestCase):
         """
         Test string representation of the grid.
         """
+
+        # Erreur pas grave, j'ai juste changé le formating de la string représentant la grile.
         expected_output = "The grid is 2 x 3. It has the following colors:\n['w', 'k', 'g']\n['b', 'r', 'w']\nand the following values:\n[5, 8, 4]\n[11, 1, 3]\n"
         self.assertEqual(str(self.grid), expected_output)
 
